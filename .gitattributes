@@ -1,0 +1,4 @@
+# Mantém finais de linha Unix (scripts e Caddyfile rodam dentro de containers Linux, mesmo clonando no Windows)
+* text=auto eol=lf
+*.woff binary
+*.png binary
