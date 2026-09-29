@@ -478,7 +478,9 @@ input[type=date],input[type=datetime-local]{line-height:40px}
 /* Painel encaixado na tela (TVs e monitores deitados): tudo visível, sem rolar.
    O tamanho dos cartões (--s) é calculado em js/app.js (ajustarPainel). */
 body.ajuste{margin:0;overflow:hidden;--tw:calc(150px * var(--s,1));--th:calc(140px * var(--s,1) * var(--sh,1))}
-body.ajuste .app{zoom:var(--z,1);height:calc(100vh / var(--z,1));min-height:0;overflow:hidden}
+body.escala .app{zoom:var(--z,1);min-height:calc(100vh / var(--z,1))}
+@media (min-width:1100px){body.escala .cad-form{max-height:calc(100vh / var(--z,1) - 24px)}}
+body.ajuste .app{height:calc(100vh / var(--z,1));min-height:0;overflow:hidden}
 body.ajuste #v-painel{min-height:0}
 body.ajuste .corpo{min-height:0;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr) clamp(320px,21%,460px)}
 body.ajuste .frota{min-height:0;overflow:hidden}
@@ -507,3 +509,5 @@ body.ajuste .lista[data-mais="1"]{-webkit-mask-image:linear-gradient(#000 calc(1
 .som-aviso svg{width:18px;height:18px;color:var(--s-wait)}
 .som-aviso[hidden]{display:none}
 @media (max-width:520px){.som-l{gap:10px}#c-som-vol{width:120px}}
+body.escala{margin:0}
+.cfg .cfg-st:empty{display:none}

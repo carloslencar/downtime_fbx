@@ -62,17 +62,20 @@ function montarFrota(est){
 /* ---------- Painel encaixado na tela ----------
    Em TVs e monitores deitados, o tamanho dos cartões é ajustado para toda a frota caber
    na tela sem rolar: aumenta quando há espaço sobrando e diminui quando falta. */
-function modoAjuste(){return vista==='painel'&&innerWidth>=900&&innerWidth>=innerHeight*1.15;}
+// Telas deitadas (TVs, monitores): todas as páginas usam a mesma escala, como numa TV Full HD
+// (1920 de largura) ampliada ou reduzida para a tela real. Assim o topo e os textos ficam iguais
+// ao trocar de página. No painel, além disso, tudo se encaixa na altura da tela sem rolar.
+function modoEscala(){return innerWidth>=900&&innerWidth>=innerHeight*1.15;}
+function modoAjuste(){return vista==='painel'&&modoEscala();}
 function ajustarPainel(){
   const b=document.body,fr=$('#frota');
   if(!fr)return;
+  if(modoEscala()){b.classList.add('escala');b.style.setProperty('--z',Math.max(.5,Math.min(3,innerWidth/1920)).toFixed(4));}
+  else{b.classList.remove('escala');b.style.removeProperty('--z');}
   const antes=b.classList.contains('ajuste');
-  if(!modoAjuste()){b.classList.remove('ajuste');['--s','--sh','--z'].forEach(k=>b.style.removeProperty(k));if(antes)render();return;}
+  if(!modoAjuste()){b.classList.remove('ajuste');['--s','--sh'].forEach(k=>b.style.removeProperty(k));if(antes)render();return;}
   b.classList.add('ajuste');
   if(!antes)render(); // quantidade de eventos listados muda com o modo
-  // O painel é desenhado como numa TV Full HD (1920 de largura) e ampliado ou reduzido
-  // para a tela real: numa TV 4K fica igual, só que mais nítido; num monitor menor, reduzido.
-  b.style.setProperty('--z',Math.max(.5,Math.min(3,innerWidth/1920)).toFixed(4));
   const ok=()=>fr.scrollHeight<=fr.clientHeight+1&&fr.scrollWidth<=fr.clientWidth+1;
   const busca=(nome,lo,hi)=>{
     const cabe=v=>{b.style.setProperty(nome,v.toFixed(3));return ok();};
