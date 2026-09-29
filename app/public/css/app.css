@@ -474,3 +474,19 @@ input[type=date],input[type=datetime-local]{line-height:40px}
   .k-v{font-size:32px}
 }
 @media (prefers-reduced-motion:reduce){.eq[data-st="aguardando"],.eq.mudou::after,.toast{animation:none}}
+
+/* Painel encaixado na tela (TVs e monitores deitados): tudo visível, sem rolar.
+   O tamanho dos cartões (--s) é calculado em js/app.js (ajustarPainel). */
+body.ajuste{margin:0;overflow:hidden;--tw:calc(150px * var(--s,1));--th:calc(140px * var(--s,1) * var(--sh,1))}
+body.ajuste .app{zoom:var(--z,1);height:calc(100vh / var(--z,1));min-height:0;overflow:hidden}
+body.ajuste #v-painel{min-height:0}
+body.ajuste .corpo{min-height:0;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr) clamp(320px,21%,460px)}
+body.ajuste .frota{min-height:0;overflow:hidden}
+body.ajuste .lado{min-height:0;overflow:hidden}
+body.ajuste .fila{flex:0 1 auto;min-height:0;max-height:62%}
+body.ajuste .evs{flex:1 1 0;min-height:0}
+body.ajuste .eq{padding:calc(5px + 2px * var(--s,1)) calc(6px + 3px * var(--s,1))}
+body.ajuste .eq-tag{font-size:clamp(12px,calc(24px * var(--s,1)),40px)}
+body.ajuste .eq-tm{font-size:clamp(11px,calc(18px * var(--s,1)),30px)}
+body.ajuste .eq-rot{font-size:clamp(10px,calc(12px * var(--s,1)),16px)}
+body.ajuste .eq-porte{font-size:clamp(9px,calc(12px * var(--s,1)),16px);padding:2px 4px}

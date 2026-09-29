@@ -59,10 +59,42 @@ function montarFrota(est){
   $('#fita').innerHTML=all.map(t=>`<span id="ft-${esc(t)}" title="${esc(t)}"></span>`).join('');
 }
 
+/* ---------- Painel encaixado na tela ----------
+   Em TVs e monitores deitados, o tamanho dos cartões é ajustado para toda a frota caber
+   na tela sem rolar: aumenta quando há espaço sobrando e diminui quando falta. */
+function modoAjuste(){return vista==='painel'&&innerWidth>=900&&innerWidth>=innerHeight*1.15;}
+function ajustarPainel(){
+  const b=document.body,fr=$('#frota');
+  if(!fr)return;
+  if(!modoAjuste()){b.classList.remove('ajuste');['--s','--sh','--z'].forEach(k=>b.style.removeProperty(k));return;}
+  b.classList.add('ajuste');
+  // O painel é desenhado como numa TV Full HD (1920 de largura) e ampliado ou reduzido
+  // para a tela real: numa TV 4K fica igual, só que mais nítido; num monitor menor, reduzido.
+  b.style.setProperty('--z',Math.max(.5,Math.min(3,innerWidth/1920)).toFixed(4));
+  const ok=()=>fr.scrollHeight<=fr.clientHeight+1&&fr.scrollWidth<=fr.clientWidth+1;
+  const busca=(nome,lo,hi)=>{
+    const cabe=v=>{b.style.setProperty(nome,v.toFixed(3));return ok();};
+    if(cabe(hi))return;
+    if(!cabe(lo))return;
+    for(let i=0;i<10;i++){const m=(lo+hi)/2;if(cabe(m))lo=m;else hi=m;}
+    cabe(lo);
+  };
+  b.style.setProperty('--sh','1');
+  busca('--s',.3,2.4);   // tamanho geral dos cartões (largura, altura e letras)
+  busca('--sh',1,1.8);   // depois estica só a altura para ocupar a sobra da tela
+}
+let ajusteT=null;
+// Depois que a tela termina de desenhar (números, fila, fontes), recalcula o encaixe.
+function agendarAjuste(ms){clearTimeout(ajusteT);ajusteT=setTimeout(ajustarPainel,ms==null?60:ms);}
+addEventListener('resize',()=>agendarAjuste(150));
+// Garantia: se algo mudar a altura do topo (ex.: texto que quebra linha), reencaixa.
+setInterval(()=>{const fr=$('#frota');if(document.body.classList.contains('ajuste')&&fr&&(fr.scrollHeight>fr.clientHeight+1||fr.scrollWidth>fr.clientWidth+1))ajustarPainel();},5000);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>ajustarPainel());
+
 function render(){
   const est=estrutura();
   const sig=JSON.stringify(est.map(x=>[x.f.id,x.f.nome,x.tags.map(t=>t+'|'+(equip[t].porte||'')+'|'+equip[t].tipo)]));
-  if(sig!==estruturaSig){estruturaSig=sig;montarFrota(est);}
+  if(sig!==estruturaSig){estruturaSig=sig;montarFrota(est);agendarAjuste();}
   const tags=est.flatMap(x=>x.tags);
   const cont={operando:0,aguardando:0,em_manutencao:0,aguardando_peca:0,liberado:0};
   for(const {f,tags:tg} of est){
@@ -987,7 +1019,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#qr').hidden)fe
 $('#bt-qr').addEventListener('click',abrirQR);
 $('#qrfix').addEventListener('click',abrirQR);
 function renderQRFixo(){
-  const el=$('#qrfix');el.hidden=!qrFixo;
+  const el=$('#qrfix');if(el.hidden===qrFixo)agendarAjuste();el.hidden=!qrFixo;
   if(qrFixo){const url=linkAtual();if(el.dataset.url!==url){desenharQR($('#qrfix-cv'),url,360);el.dataset.url=url;}}
 }
 $('#c-qrfixo').addEventListener('change',e=>{qrFixo=e.target.checked;try{localStorage.setItem('qp-qrfixo',qrFixo?'1':'0')}catch(err){}renderQRFixo();render();renderCfg();const st=$('#c-lang-st');if(st){st.textContent='Salvo neste aparelho';st.className='cfg-st ok';setTimeout(()=>{st.textContent='';},3000);}});
@@ -1327,6 +1359,7 @@ function setVista(v){
   if(v==='config')renderCfg();
   if(v==='usuarios')renderUsr();
   if(v==='dados')renderDados(true);
+  agendarAjuste();
 }
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>setVista(b.dataset.view)));
 

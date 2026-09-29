@@ -30,6 +30,9 @@ Exec=chromium --kiosk --noerrdialogs --disable-session-crashed-bubble http://dow
 
 ## Comportamento
 
+- O painel se encaixa sozinho na tela: toda a frota aparece sem rolar, em qualquer resolução ou
+  escala do Windows (100%, 150%, 300%...). Os cartões crescem quando sobra espaço e diminuem quando falta.
+
 - A TV se reconecta sozinha se a rede ou o servidor cair, e mostra "Reconectando…" enquanto isso,
   mantendo o último estado na tela.
 - Depois de uma atualização do sistema, a TV recarrega sozinha.
