@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: downtime
+          POSTGRES_PASSWORD: downtime
+          POSTGRES_DB: downtime_teste
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U downtime" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Verificar sintaxe da interface
+        run: for f in public/js/*.js; do node --check "$f"; done
+      - name: Testes
+        env:
+          DATABASE_URL: postgres://downtime:downtime@localhost:5432/downtime_teste
+        run: npm test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar docker compose
+        run: cp .env.example .env && docker compose config --quiet
+      - name: Construir imagem
+        run: docker build -t downtime-app:ci app

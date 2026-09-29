@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0F12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Quadro de Paradas</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-adt" viewBox="0 0 120 70"><rect x="52" y="37" width="58" height="5" style="fill:var(--tire)"/><path d="M46 8H117V26L97 40H52L46 34Z" fill="currentColor"/><rect x="3" y="34" width="45" height="7" rx="2" fill="currentColor"/><path d="M3 34V26Q3 22 7 22H17V34Z" fill="currentColor"/><rect x="16" y="9" width="24" height="26" rx="3" fill="currentColor"/><rect x="19" y="12" width="18" height="12" rx="1.5" style="fill:var(--glass)"/><circle cx="47" cy="38" r="4" style="fill:var(--hub)"/><circle cx="22" cy="56" r="12" style="fill:var(--tire)"/><circle cx="22" cy="56" r="4" style="fill:var(--hub)"/><circle cx="76" cy="56" r="12" style="fill:var(--tire)"/><circle cx="76" cy="56" r="4" style="fill:var(--hub)"/><circle cx="102" cy="56" r="12" style="fill:var(--tire)"/><circle cx="102" cy="56" r="4" style="fill:var(--hub)"/></symbol>
+  <symbol id="i-escavadeira" viewBox="0 0 120 70"><rect x="6" y="50" width="80" height="15" rx="7.5" style="fill:var(--tire)"/><circle cx="14" cy="57.5" r="5" style="fill:var(--hub)"/><circle cx="78" cy="57.5" r="5" style="fill:var(--hub)"/><circle cx="30" cy="59" r="2.5" style="fill:var(--hub)"/><circle cx="46" cy="59" r="2.5" style="fill:var(--hub)"/><circle cx="62" cy="59" r="2.5" style="fill:var(--hub)"/><rect x="30" y="45" width="24" height="6" style="fill:var(--hub)"/><g fill="currentColor"><path d="M8 30H72V46H12Q8 46 8 42Z"/><path d="M4 32Q4 30 6 30H14V46H8Q4 46 4 42Z"/><rect x="48" y="14" width="22" height="18" rx="2"/><path d="M64 36L90 8L98 13L72 42Z"/><path d="M90 8L113 36L107 40L86 14Z"/></g><rect x="52" y="17" width="14" height="9" rx="1" style="fill:var(--glass)"/><path d="M70 30L88 14" style="stroke:var(--hub)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M104 36L119 38L115 55Q107 57 101 49Z" style="fill:var(--tire)"/></symbol>
+  <symbol id="i-carregadeira" viewBox="0 0 120 70"><path d="M2 18L24 16L27 45L6 47Q2 40 2 30Z" style="fill:var(--tire)"/><g fill="currentColor"><path d="M24 25L52 33L50 40L22 32Z"/><rect x="26" y="33" width="32" height="13" rx="2"/><path d="M56 26H108Q115 26 115 33V46H56Z"/><rect x="58" y="5" width="24" height="23" rx="2"/></g><rect x="61" y="8" width="18" height="12" rx="1" style="fill:var(--glass)"/><rect x="96" y="17" width="3" height="10" style="fill:var(--tire)"/><circle cx="57" cy="42" r="3" style="fill:var(--hub)"/><circle cx="38" cy="54" r="14" style="fill:var(--tire)"/><circle cx="38" cy="54" r="5" style="fill:var(--hub)"/><circle cx="94" cy="54" r="14" style="fill:var(--tire)"/><circle cx="94" cy="54" r="5" style="fill:var(--hub)"/></symbol>
+  <symbol id="i-trator" viewBox="0 0 120 70"><rect x="14" y="48" width="92" height="18" rx="9" style="fill:var(--tire)"/><circle cx="23" cy="57" r="5" style="fill:var(--hub)"/><circle cx="97" cy="57" r="5" style="fill:var(--hub)"/><circle cx="42" cy="59" r="2.5" style="fill:var(--hub)"/><circle cx="60" cy="59" r="2.5" style="fill:var(--hub)"/><circle cx="78" cy="59" r="2.5" style="fill:var(--hub)"/><g fill="currentColor"><path d="M24 48V33Q24 29 28 29H64V48Z"/><rect x="62" y="8" width="26" height="40" rx="2"/><rect x="86" y="30" width="12" height="18" rx="2"/><path d="M4 12Q12 36 5 64H13Q19 36 12 13Z"/></g><rect x="65" y="11" width="20" height="13" rx="1" style="fill:var(--glass)"/><rect x="12" y="42" width="16" height="5" style="fill:var(--tire)"/><rect x="50" y="20" width="3" height="10" style="fill:var(--tire)"/><path d="M98 32H114V37H109L111 63H105L103 37H98Z" style="fill:var(--tire)"/></symbol>
+  <symbol id="i-motoniveladora" viewBox="0 0 120 70"><g fill="currentColor"><path d="M10 28L72 22L73 29L12 35Z"/><rect x="9" y="30" width="9" height="17" rx="1"/><rect x="72" y="26" width="44" height="18" rx="3"/><rect x="62" y="4" width="24" height="24" rx="2"/><rect x="80" y="46" width="30" height="6" rx="1"/></g><rect x="65" y="7" width="18" height="12" rx="1" style="fill:var(--glass)"/><path d="M34 48Q48 42 64 48L62 54Q48 50 36 54Z" style="fill:var(--tire)"/><path d="M40 33L44 46M58 31L56 46" style="stroke:var(--hub)" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="14" cy="56" r="10" style="fill:var(--tire)"/><circle cx="14" cy="56" r="4" style="fill:var(--hub)"/><circle cx="84" cy="57" r="10" style="fill:var(--tire)"/><circle cx="84" cy="57" r="4" style="fill:var(--hub)"/><circle cx="106" cy="57" r="10" style="fill:var(--tire)"/><circle cx="106" cy="57" r="4" style="fill:var(--hub)"/></symbol>
+  <symbol id="i-bomba" viewBox="0 0 120 70"><rect x="4" y="58" width="112" height="7" rx="2" style="fill:var(--tire)"/><g fill="currentColor"><rect x="6" y="31" width="10" height="14" rx="1"/><circle cx="32" cy="38" r="18"/><rect x="26" y="6" width="12" height="16"/><rect x="64" y="22" width="50" height="34" rx="4"/></g><rect x="22" y="3" width="20" height="4" style="fill:var(--hub)"/><circle cx="32" cy="38" r="6" style="fill:var(--tire)"/><rect x="50" y="32" width="14" height="10" rx="1" style="fill:var(--hub)"/><rect x="100" y="27" width="10" height="24" rx="1" style="fill:var(--tire)" opacity=".6"/></symbol>
+  <symbol id="i-perfuratriz" viewBox="0 0 120 70"><rect x="6" y="50" width="80" height="15" rx="7.5" style="fill:var(--tire)"/><circle cx="14" cy="57.5" r="5" style="fill:var(--hub)"/><circle cx="78" cy="57.5" r="5" style="fill:var(--hub)"/><circle cx="36" cy="59" r="2.5" style="fill:var(--hub)"/><circle cx="56" cy="59" r="2.5" style="fill:var(--hub)"/><g fill="currentColor"><rect x="8" y="32" width="66" height="18" rx="3"/><rect x="10" y="14" width="24" height="20" rx="2"/><path d="M62 42L84 30L86 36L66 48Z"/><rect x="84" y="2" width="10" height="60" rx="1"/></g><rect x="13" y="17" width="18" height="10" rx="1" style="fill:var(--glass)"/><rect x="82" y="12" width="14" height="8" style="fill:var(--hub)"/><rect x="88" y="20" width="2" height="46" style="fill:var(--tire)"/><rect x="82" y="62" width="14" height="4" style="fill:var(--tire)"/></symbol>
+  <symbol id="i-comboio" viewBox="0 0 120 70"><rect x="4" y="40" width="112" height="5" style="fill:var(--tire)"/><g fill="currentColor"><path d="M3 42V28Q3 24 7 24H17V42Z"/><rect x="15" y="10" width="22" height="32" rx="3"/><rect x="41" y="12" width="75" height="28" rx="12"/></g><rect x="18" y="13" width="16" height="12" rx="1" style="fill:var(--glass)"/><rect x="70" y="8" width="12" height="4" style="fill:var(--hub)"/><circle cx="20" cy="55" r="10" style="fill:var(--tire)"/><circle cx="20" cy="55" r="4" style="fill:var(--hub)"/><circle cx="82" cy="55" r="10" style="fill:var(--tire)"/><circle cx="82" cy="55" r="4" style="fill:var(--hub)"/><circle cx="104" cy="55" r="10" style="fill:var(--tire)"/><circle cx="104" cy="55" r="4" style="fill:var(--hub)"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="top">
+    <div class="marca">
+      <svg viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="1" width="36" height="36" rx="8" fill="none" stroke="#31404B" stroke-width="2"/><rect x="8" y="22" width="5" height="9" rx="1" fill="#52B886"/><rect x="16.5" y="14" width="5" height="17" rx="1" fill="#F29B24"/><rect x="25" y="7" width="5" height="24" rx="1" fill="#F2493E"/></svg>
+      <div><h1>Quadro de Paradas</h1><p>Operação × Manutenção · frota de mina</p></div>
+    </div>
+    <div class="ctrl">
+      <div class="seg nav" id="nav" role="group" aria-label="Seção"><button type="button" data-view="painel">Painel</button><button type="button" data-view="cadastro">Cadastro</button><button type="button" data-view="usuarios">Usuários</button><button type="button" data-view="dados" id="nav-dados" hidden>Dados</button><button type="button" data-view="config" aria-label="Configurações">Configurações</button></div>
+      <span class="pill" id="sync" data-s="local"><i></i><span>Modo local</span></span>
+      <div id="sessao"></div>
+      <button type="button" class="bt ico" id="bt-qr" title="QR code de acesso pelo celular" aria-label="QR code de acesso pelo celular"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><path d="M9 9h2v2M13 9v5M9 13h2"/></svg><span>QR code</span></button>
+      <button type="button" class="bt ico" id="tela" title="Tela cheia" aria-label="Tela cheia"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span>Tela cheia</span></button>
+      <div class="relogio"><b id="hora">--:--:--</b><span id="data">—</span></div>
+    </div>
+  </header>
+
+  <div class="vista" id="v-painel">
+  <section class="kpis" aria-label="Resumo da frota">
+    <div class="k">
+      <div class="k-l">Disponíveis agora</div>
+      <div class="disp-row"><div class="k-v" id="k-disp">–</div><span class="disp-pct" id="k-pct"></span></div>
+      <div class="fita" id="fita" aria-hidden="true"></div>
+    </div>
+    <div class="k" style="--c:var(--s-wait)"><div class="k-l"><i></i>Aguardando atendimento</div><div class="k-v" id="k-aguardando">0</div></div>
+    <div class="k" style="--c:var(--s-maint)"><div class="k-l"><i></i>Em manutenção</div><div class="k-v" id="k-em_manutencao">0</div></div>
+    <div class="k" style="--c:var(--s-peca)"><div class="k-l"><i></i>Aguardando peça</div><div class="k-v" id="k-aguardando_peca">0</div></div>
+    <div class="k" style="--c:var(--s-lib)"><div class="k-l"><i></i>Liberados p/ operação</div><div class="k-v" id="k-liberado">0</div></div>
+    <div class="k espera"><div class="k-l">Maior espera sem atendimento</div><div class="k-v" id="k-espera">—</div></div>
+  </section>
+
+  <div class="corpo">
+    <main class="frota" id="frota" aria-label="Equipamentos por frota"></main>
+    <aside class="lado">
+      <section class="painel fila"><h3>Fila de atendimento <span id="fila-n"></span></h3><div class="lista" id="fila"></div></section>
+      <button type="button" class="painel qrfix" id="qrfix" hidden aria-label="QR code de acesso pelo celular"><canvas id="qrfix-cv" width="120" height="120" aria-hidden="true"></canvas><span><b>Acesse pelo celular</b><small>Aponte a câmera para abrir o quadro e registrar paradas.</small></span></button>
+      <section class="painel evs"><h3>Últimos eventos</h3><div class="lista" id="evs"></div></section>
+      <div class="legenda">
+        <span data-c="operando"><i></i>Operando</span><span data-c="aguardando"><i></i>Aguardando</span><span data-c="em_manutencao"><i></i>Em manutenção</span><span data-c="aguardando_peca"><i></i>Aguard. peça</span><span data-c="liberado"><i></i>Liberado</span>
+      </div>
+    </aside>
+  </div>
+  </div>
+  <div class="vista" id="v-cfg" hidden>
+    <div class="cfg-wrap">
+      <div class="cfg-col">
+      <section class="painel cfg" aria-labelledby="cfg-l">
+        <h3 id="cfg-l">Esta tela</h3>
+        <div class="op" style="border-top:0">
+          <div class="ic"><svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="17" cy="17" r="13"/><path d="M4 17h26M17 4c4 4 5.5 8.5 5.5 13S21 26 17 30M17 4c-4 4-5.5 8.5-5.5 13S13 26 17 30"/></svg><div><b>Idioma</b><p>Vale só para este aparelho. Cada TV, computador e celular pode usar o seu idioma, e os dados continuam os mesmos.</p></div></div>
+          <div class="seg" id="c-lang" role="group" aria-label="Idioma"><button type="button" data-lang="pt" lang="pt-BR">Português</button><button type="button" data-lang="en" lang="en">English</button></div>
+        </div>
+        <div class="op">
+          <div class="ic"><svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="10" height="10"/><rect x="20" y="4" width="10" height="10"/><rect x="4" y="20" width="10" height="10"/><path d="M20 20h4v4M30 20v10M20 30h4"/></svg><div><b>QR code fixo no painel</b><p>Mostra o QR code de acesso no canto do painel, para quem passar pela TV abrir o sistema no celular.</p></div></div>
+          <label class="sw" for="c-qrfixo"><input type="checkbox" id="c-qrfixo"><span id="c-qrfixo-t">Desligado</span></label>
+        </div>
+        <p class="cfg-st" id="c-lang-st" role="status"></p>
+      </section>
+      <section class="painel cfg" aria-labelledby="cfg-t">
+        <h3 id="cfg-t">Todas as telas</h3>
+        <p class="intro">Opções que valem para todas as telas. As mudanças são salvas na hora e chegam às duas TVs e aos celulares.</p>
+        <p class="nota" id="c-perm" hidden>Só o administrador muda estas opções.</p>
+        <div class="op">
+          <div class="ic"><svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="17" cy="19" r="12"/><path d="M17 19l6-6M17 4v3M9 8.5l1.5 2M25 8.5l-1.5 2" stroke-linecap="round"/><circle cx="17" cy="19" r="1.8" fill="currentColor"/></svg><div><b>Horímetro nas paradas</b><p>Pede a leitura do horímetro quando a operação abre uma parada e quando a manutenção libera o equipamento. Cada leitura atualiza o cadastro.</p></div></div>
+          <label class="sw" for="c-hor"><input type="checkbox" id="c-hor"><span id="c-hor-t">Desligado</span></label>
+        </div>
+        <div class="op sub" id="c-sub1">
+          <div><b>Leitura obrigatória</b><p>Sem o horímetro, não dá para abrir nem liberar a parada. Desligado, o campo fica opcional.</p></div>
+          <label class="sw" for="c-obr"><input type="checkbox" id="c-obr"><span class="sr">Leitura obrigatória</span></label>
+        </div>
+        <div class="op sub" id="c-sub2">
+          <div><b>Conferir saltos grandes</b><p>Pede uma segunda confirmação quando a nova leitura passa da anterior por mais do que:</p></div>
+          <div class="num"><input type="number" id="c-salto" min="10" max="5000" step="10" inputmode="numeric" aria-label="Limite de salto em horas"> h</div>
+        </div>
+        <div class="op op-link">
+          <div class="ic"><svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 20a6 6 0 0 0 8.5 0l4-4a6 6 0 0 0-8.5-8.5l-1.5 1.5"/><path d="M20 14a6 6 0 0 0-8.5 0l-4 4a6 6 0 0 0 8.5 8.5l1.5-1.5"/></svg><div><b>Link de acesso</b><p>Endereço que o QR code abre. Em branco, usa o endereço deste servidor. Preencha se a TI criar um nome próprio, por exemplo http://downtime</p></div></div>
+          <input type="url" id="c-link" class="linkin" placeholder="https://quadro.mina.local" aria-label="Link de acesso" autocomplete="off">
+        </div>
+        <p class="cfg-st" id="c-st" role="status"></p>
+      </section>
+      </div>
+      <section class="painel cfg">
+        <h3>Como funciona</h3>
+        <div class="fluxo">
+          <i data-c="aguardando">1</i><div><b>Operação abre a parada</b><p>Informa o motivo e <b>o horímetro no momento da parada</b>.</p></div>
+          <i data-c="em_manutencao">2</i><div><b>Manutenção atende</b><p>Nada muda nesta etapa.</p></div>
+          <i data-c="liberado">3</i><div><b>Manutenção libera</b><p>Informa <b>o horímetro após o serviço</b>, útil quando o reparo inclui teste com motor ligado.</p></div>
+        </div>
+        <p class="cfg-st" style="margin-top:14px">Leituras menores que a anterior são recusadas.</p>
+        <h3 style="margin-top:14px">Leituras recentes</h3>
+        <div class="leit" id="c-leit"></div>
+      </section>
+    </div>
+  </div>
+  <div class="vista" id="v-lock" hidden>
+    <section class="painel lock">
+      <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="18" width="24" height="17" rx="3"/><path d="M13 18v-5a7 7 0 0 1 14 0v5"/><circle cx="20" cy="26" r="2" fill="currentColor"/></svg>
+      <h3 id="lock-t">Acesso restrito</h3><p id="lock-p"></p>
+      <button type="button" class="novo" id="lock-entrar"><span>Entrar</span></button>
+    </section>
+  </div>
+  <div class="vista" id="v-dados" hidden>
+    <section class="kpis dk" id="d-resumo" aria-label="Resumo dos dados"></section>
+    <div class="d-grid">
+      <section class="painel d-exp frm">
+        <h3>Exportar dados</h3>
+        <p class="intro">Uma planilha com cinco abas: Paradas, Etapas, Correções, Equipamentos e Usuários (sem o PIN). As datas já saem no formato do Excel.</p>
+        <div class="d-per">
+          <div class="cp"><label for="d-de">De</label><input type="date" id="d-de"></div>
+          <div class="cp"><label for="d-ate">Até</label><input type="date" id="d-ate"></div>
+          <button type="button" class="ghost" id="d-atual">Atualizar</button>
+        </div>
+        <div class="acoes"><button type="button" class="salvar" id="d-xlsx">Baixar planilha Excel (.xlsx)</button><button type="button" class="ghost" id="d-csv">Baixar aba atual em CSV</button></div>
+        <p class="qr-st" id="d-st" role="status"></p>
+        <div class="seg d-tabs" id="d-tabs" role="group" aria-label="Aba"></div>
+        <div class="d-prev" id="d-prev"></div>
+        <p class="cfg-st" id="d-prev-n"></p>
+      </section>
+      <section class="painel d-pq frm">
+        <h3>Conectar no Excel (Power Query)</h3>
+        <ol class="passos">
+          <li>No Excel, vá em Dados, Obter Dados, De Outras Fontes, Consulta Nula.</li>
+          <li>Abra o Editor Avançado, apague o que estiver lá e cole o código da tabela escolhida abaixo.</li>
+          <li>Repita para cada tabela que quiser usar nos relatórios.</li>
+          <li>Para atualizar, clique em Dados, Atualizar Tudo. O Excel busca os dados direto do servidor, sem baixar arquivo.</li>
+        </ol>
+        <div class="cp"><label for="d-pq-tab">Tabela</label><select id="d-pq-tab"><option value="paradas">Paradas</option><option value="etapas">Etapas</option><option value="correcoes">Correções</option><option value="equipamentos">Equipamentos</option><option value="eventos">Eventos (histórico completo)</option><option value="usuarios">Usuários</option></select></div>
+        <div class="mcode"><div class="mh"><span>Consulta da tabela <b id="d-m-tab"></b></span><button type="button" id="d-copiar">Copiar código</button></div><pre id="d-m"></pre></div>
+        <div class="cp"><label for="d-link">Link direto da tabela (CSV)</label><input type="text" id="d-link" readonly spellcheck="false"></div>
+        <p class="nota">O código e o link levam a chave de acesso aos relatórios: quem tiver a chave consegue ler os dados. Compartilhe só com quem monta os relatórios. <button type="button" class="lnk" id="d-chave">Gerar nova chave</button></p>
+      </section>
+    </div>
+    <section class="painel d-snap">
+      <div class="d-snap-img"><img id="r-prev" alt="Prévia do retrato do painel"></div>
+      <div class="d-snap-info">
+        <h3>Retrato do painel</h3>
+        <p class="intro">Uma imagem JPEG do painel como está agora, na proporção 16:9 dos slides do PowerPoint. Dá para colar direto numa apresentação ou enviar por e-mail.</p>
+        <div class="r-bts"><button type="button" class="salvar" id="r-hd">Baixar JPEG · Full HD (1920×1080)</button><button type="button" class="ghost" id="r-4k">Baixar JPEG · 4K (3840×2160)</button><button type="button" class="ghost" id="r-atual">Atualizar prévia</button></div>
+        <p class="qr-st" id="r-st" role="status"></p>
+        <p class="dica">O Full HD fica legível em tela cheia no projetor. Use o 4K se for dar zoom no slide ou imprimir.</p>
+      </div>
+    </section>
+  </div>
+  <div class="vista frm" id="v-usr" hidden>
+    <section class="biblio perfis" id="u-resumo" aria-label="Usuários por perfil · filtrar"></section>
+    <div class="cad-corpo">
+      <section class="painel">
+        <div class="cad-bar"><input type="search" id="u-busca" placeholder="Buscar nome ou matrícula" aria-label="Buscar usuário"><span class="cad-n" id="u-n"></span><span class="sp"></span><button type="button" class="novo" id="u-novo">+ Novo usuário</button></div>
+        <div class="tab" id="u-tab"></div>
+      </section>
+      <section class="painel cad-form" id="u-form" aria-label="Formulário de usuário"></section>
+    </div>
+  </div>
+  <div class="vista frm" id="v-cad" hidden>
+    <section class="biblio" id="biblio" aria-label="Biblioteca de ícones · filtrar por tipo"></section>
+    <div class="cad-corpo">
+      <section class="painel">
+        <div class="cad-bar"><input type="search" id="busca" placeholder="Buscar TAG, modelo ou área" aria-label="Buscar equipamento"><span class="cad-n" id="cad-n"></span><span class="sp"></span><button type="button" class="ghost-sm" id="bt-areas" hidden>Áreas</button><button type="button" class="novo" id="novo">+ Novo equipamento</button></div>
+        <div class="tab" id="cad-tab"></div>
+      </section>
+      <section class="painel cad-form" id="cad-form" aria-label="Formulário de cadastro"></section>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<div class="modal" id="areas" hidden><div class="dlg arsd" id="areas-dlg" role="dialog" aria-modal="true" aria-labelledby="areas-t"></div></div>
+<div class="modal" id="qr" hidden><div class="dlg qrd" id="qr-dlg" role="dialog" aria-modal="true" aria-labelledby="qr-t"></div></div>
+<div class="modal" id="login" hidden><div class="dlg login" id="login-dlg" role="dialog" aria-modal="true" aria-labelledby="login-t"></div></div>
+<div class="modal" id="modal" hidden><div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t"></div></div>
+
+<script src="vendor/qrcode.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/dados.js"></script>
+<script src="js/cliente.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

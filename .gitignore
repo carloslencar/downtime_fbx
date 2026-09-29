@@ -1,0 +1,7 @@
+.env
+node_modules/
+backups/
+caddy/certs/*
+!caddy/certs/LEIA-ME.txt
+*.log
+.DS_Store

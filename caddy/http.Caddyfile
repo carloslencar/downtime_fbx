@@ -1,0 +1,16 @@
+# Modo padrão: HTTP simples na porta 80 (intranet).
+# Para HTTPS, veja docs/HTTPS.md e troque MODO no arquivo .env.
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	# compacta tudo, menos o canal de tempo real
+	@comprimir not path /api/stream
+	encode @comprimir gzip
+	reverse_proxy app:3000 {
+		# atualização em tempo real (Server-Sent Events) sem atraso
+		flush_interval -1
+	}
+}

@@ -1,0 +1,10 @@
+# Complemento para HTTPS por DNS (Let's Encrypt). Ativado pelo .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.dns.yml
+#   MODO=https-dns
+services:
+  proxy:
+    build: ./caddy/dns
+    image: downtime-caddy-dns:latest
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:-}
+      DNS_API_TOKEN: ${DNS_API_TOKEN:-}

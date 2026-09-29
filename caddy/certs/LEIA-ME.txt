@@ -1,0 +1,4 @@
+Coloque aqui o certificado HTTPS quando usar MODO=https-certificado:
+  certificado.pem  (certificado do servidor + cadeia intermediária)
+  chave.pem        (chave privada)
+Estes arquivos não vão para o GitHub (.gitignore).

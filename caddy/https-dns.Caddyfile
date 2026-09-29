@@ -1,0 +1,19 @@
+# HTTPS com certificado gratuito Let's Encrypt validado por DNS (servidor não precisa estar na internet).
+# Exige um domínio público da empresa e um token de API do provedor de DNS. Ver docs/HTTPS.md
+# Exemplo para Cloudflare; para outro provedor troque o módulo em caddy/dns/Dockerfile e a linha "dns".
+{
+	admin off
+	email {$ACME_EMAIL}
+}
+
+{$SITE_ENDERECO} {
+	tls {
+		dns cloudflare {$DNS_API_TOKEN}
+	}
+	# compacta tudo, menos o canal de tempo real
+	@comprimir not path /api/stream
+	encode @comprimir gzip
+	reverse_proxy app:3000 {
+		flush_interval -1
+	}
+}

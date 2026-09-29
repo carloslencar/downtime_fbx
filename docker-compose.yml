@@ -1,0 +1,90 @@
+# Quadro de Paradas (downtime_fbx)
+# Subir:      docker compose up -d --build
+# Ver logs:   docker compose logs -f app
+# As configurações ficam no arquivo .env (copie de .env.example).
+
+name: downtime
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: downtime
+      POSTGRES_USER: downtime
+      POSTGRES_PASSWORD: ${DB_SENHA:?Defina DB_SENHA no arquivo .env}
+      TZ: ${TZ:-America/Manaus}
+      PGTZ: ${TZ:-America/Manaus}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U downtime -d downtime"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Para o Power BI / Power Query conectar direto no banco (usuário somente leitura),
+    # descomente as duas linhas abaixo e defina POWERQUERY_SENHA no .env.
+    # ports:
+    #   - "5432:5432"
+
+  app:
+    build: ./app
+    image: downtime-app:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: downtime
+      PGUSER: downtime
+      PGPASSWORD: ${DB_SENHA}
+      TZ: ${TZ:-America/Manaus}
+      DADOS_INICIAIS: ${DADOS_INICIAIS:-prototipo}
+      ADMIN_PIN: ${ADMIN_PIN:-}
+      ADMIN_MATRICULA: ${ADMIN_MATRICULA:-10001}
+      POWERQUERY_USUARIO: ${POWERQUERY_USUARIO:-relatorios}
+      POWERQUERY_SENHA: ${POWERQUERY_SENHA:-}
+      RELATORIOS_CHAVE: ${RELATORIOS_CHAVE:-}
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${HTTP_PORTA:-80}:80"
+      - "${HTTPS_PORTA:-443}:443"
+    environment:
+      SITE_ENDERECO: ${SITE_ENDERECO:-localhost}
+    volumes:
+      # MODO=http (padrão) ou MODO=https-certificado. Ver docs/HTTPS.md
+      - ./caddy/${MODO:-http}.Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/certs:/certs:ro
+      - caddydata:/data
+      - caddyconfig:/config
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: downtime
+      PGUSER: downtime
+      PGPASSWORD: ${DB_SENHA}
+      TZ: ${TZ:-America/Manaus}
+      BACKUP_HORA: ${BACKUP_HORA:-02:30}
+      BACKUP_DIAS: ${BACKUP_DIAS:-30}
+    volumes:
+      - ./backups:/backups
+      - ./backup/backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "/backup.sh"]
+
+volumes:
+  dbdata:
+  caddydata:
+  caddyconfig:

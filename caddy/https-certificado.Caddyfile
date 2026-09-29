@@ -1,0 +1,18 @@
+# HTTPS com o certificado da empresa (ou de uma autoridade pública).
+# 1. Coloque os arquivos em caddy/certs/: certificado.pem (com a cadeia completa) e chave.pem
+# 2. No .env: MODO=https-certificado e SITE_ENDERECO=downtime.suaempresa.com.br
+# 3. docker compose up -d
+# O endereço HTTP passa a redirecionar para HTTPS automaticamente.
+{
+	admin off
+}
+
+{$SITE_ENDERECO} {
+	tls /certs/certificado.pem /certs/chave.pem
+	# compacta tudo, menos o canal de tempo real
+	@comprimir not path /api/stream
+	encode @comprimir gzip
+	reverse_proxy app:3000 {
+		flush_interval -1
+	}
+}
