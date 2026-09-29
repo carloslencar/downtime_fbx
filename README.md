@@ -56,6 +56,8 @@ Depois de mudar, rode `docker compose up -d`.
 
 - **TVs:** abra o endereço no navegador e clique em **Tela cheia**. Não é preciso entrar com usuário na TV.
   Veja [docs/TV.md](docs/TV.md) para deixar a TV abrindo sozinha ao ligar.
+- **Alarme sonoro:** em Configurações › Esta tela, cada TV ou computador liga o seu alarme (nova parada,
+  equipamento liberado e lembrete de espera). Detalhes em [docs/TV.md](docs/TV.md).
 - **Celulares:** escaneie o QR code (botão **QR code** no topo ou o cartaz em PDF), toque em **Entrar**,
   escolha o nome e digite o PIN. O celular fica conectado até a pessoa tocar em **Sair**.
 - **Rede instável:** se o Wi-Fi cair, a TV continua mostrando o último estado com o aviso "Reconectando…", e os

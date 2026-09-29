@@ -14,10 +14,10 @@ O painel foi desenhado para TV Full HD (1920×1080) ou 4K, em tela cheia.
 **Windows (Chrome ou Edge):** crie um atalho na pasta Inicializar (`Win+R` › `shell:startup`) com o destino:
 
 ```
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk --noerrdialogs --disable-session-crashed-bubble http://downtime/
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk --autoplay-policy=no-user-gesture-required --noerrdialogs --disable-session-crashed-bubble http://downtime/
 ```
 
-(para o Edge: `msedge.exe --kiosk http://downtime/ --edge-kiosk-type=fullscreen`)
+(para o Edge: `msedge.exe --kiosk http://downtime/ --edge-kiosk-type=fullscreen --autoplay-policy=no-user-gesture-required`)
 
 **Linux (Chromium):** em `~/.config/autostart/quadro.desktop`:
 
@@ -25,8 +25,23 @@ O painel foi desenhado para TV Full HD (1920×1080) ou 4K, em tela cheia.
 [Desktop Entry]
 Type=Application
 Name=Quadro de Paradas
-Exec=chromium --kiosk --noerrdialogs --disable-session-crashed-bubble http://downtime/
+Exec=chromium --kiosk --autoplay-policy=no-user-gesture-required --noerrdialogs --disable-session-crashed-bubble http://downtime/
 ```
+
+## Alarme sonoro
+
+Em **Configurações › Esta tela › Alarme sonoro** cada aparelho liga o seu alarme e escolhe os avisos:
+
+- **Nova parada:** três bipes fortes quando a operação abre uma parada (bom para a TV da oficina).
+- **Equipamento liberado:** carrilhão curto quando a manutenção libera (bom para a sala de controle).
+- **Lembrete de espera:** repete dois bipes enquanto houver equipamento aguardando atendimento há mais
+  do que o tempo escolhido (padrão 15 min).
+- **Volume** e botões **Ouvir** para testar.
+
+Os navegadores só liberam som depois que alguém toca na tela. Se aparecer no canto o aviso
+"Toque para ativar o alarme sonoro", toque nele uma vez. Para a TV não depender disso, use o modo
+quiosque com a opção `--autoplay-policy=no-user-gesture-required` (já incluída nos atalhos abaixo e acima).
+Lembre de deixar o som da TV ligado e com volume.
 
 ## Comportamento
 

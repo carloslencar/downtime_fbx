@@ -1415,7 +1415,7 @@ montarFrota(estrutura());vista=({'#cadastro':'cadastro','#config':'config','#usu
   },()=>{setSync('erro');});
   db.doc('log/feed').onSnapshot(s=>{
     const ev=(s.exists&&Array.isArray(s.data().eventos))?s.data().eventos.slice():[];
-    if(!primeiroFeed){ev.filter(x=>x.t>ultimoT).reverse().forEach(toast);}
+    if(!primeiroFeed){ev.filter(x=>x.t>ultimoT).reverse().forEach(x=>{toast(x);if(window.alarmeEvento)alarmeEvento(x);});}
     primeiroFeed=false;if(ev[0])ultimoT=Math.max(ultimoT,ev[0].t);feedDb=ev;
     eventos=ev;render();
   },()=>{});

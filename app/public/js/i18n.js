@@ -105,7 +105,15 @@ Object.assign(EN,{
 'Só o administrador remove paradas.':'Only the administrator can remove stops.',
 'Endereço que o QR code abre. Em branco, usa o endereço deste servidor. Preencha se a TI criar um nome próprio, por exemplo http://downtime':'Address the QR code opens. Leave blank to use this server address. Fill it in if IT creates a dedicated name, for example http://downtime',
 'Arquivo pronto.':'File ready.',
-'O primeiro usuário precisa ser administrador.':'The first user must be an administrator.'
+'O primeiro usuário precisa ser administrador.':'The first user must be an administrator.',
+'Alarme sonoro':'Sound alarm',
+'Toca um aviso neste aparelho quando algo acontece no quadro. Ligue na TV da oficina e na sala de controle; cada tela escolhe os seus avisos.':'Plays an alert on this device when something happens on the board. Turn it on at the shop TV and the control room; each screen picks its own alerts.',
+'O navegador só libera o som depois que alguém toca na tela. Toque em qualquer lugar uma vez, ou deixe a TV no modo quiosque (ver docs/TV.md).':'The browser only allows sound after someone touches the screen. Tap anywhere once, or run the TV in kiosk mode (see docs/TV.md).',
+'Nova parada':'New stop','Três bipes fortes quando a operação abre uma parada.':'Three loud beeps when operations opens a stop.',
+'Equipamento liberado':'Unit released','Carrilhão curto quando a manutenção libera um equipamento.':'Short chime when maintenance releases a unit.',
+'Lembrete de espera':'Waiting reminder','Repete dois bipes enquanto houver equipamento aguardando atendimento há mais de:':'Repeats two beeps while any unit has been waiting for service for more than:',
+'Volume':'Volume','O volume final também depende do volume da TV ou do computador.':'The final loudness also depends on the TV or computer volume.',
+'Ouvir':'Play','Toque para ativar o alarme sonoro':'Tap to enable the sound alarm','Minutos de espera':'Minutes waiting','Volume do alarme':'Alarm volume'
 });
 function trPart(p){
   if(!p)return p;
