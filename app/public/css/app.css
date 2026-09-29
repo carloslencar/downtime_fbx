@@ -490,3 +490,9 @@ body.ajuste .eq-tag{font-size:clamp(12px,calc(24px * var(--s,1)),40px)}
 body.ajuste .eq-tm{font-size:clamp(11px,calc(18px * var(--s,1)),30px)}
 body.ajuste .eq-rot{font-size:clamp(10px,calc(12px * var(--s,1)),16px)}
 body.ajuste .eq-porte{font-size:clamp(9px,calc(12px * var(--s,1)),16px);padding:2px 4px}
+
+/* Fila e últimos eventos: rolam com a roda do mouse ou o dedo, sem barra de rolagem aparente.
+   Um leve esmaecido embaixo indica que há mais itens. */
+body.ajuste .fila .lista,body.ajuste .evs .lista{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}
+body.ajuste .fila .lista::-webkit-scrollbar,body.ajuste .evs .lista::-webkit-scrollbar{display:none}
+body.ajuste .lista[data-mais="1"]{-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}

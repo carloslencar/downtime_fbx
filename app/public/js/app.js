@@ -66,8 +66,10 @@ function modoAjuste(){return vista==='painel'&&innerWidth>=900&&innerWidth>=inne
 function ajustarPainel(){
   const b=document.body,fr=$('#frota');
   if(!fr)return;
-  if(!modoAjuste()){b.classList.remove('ajuste');['--s','--sh','--z'].forEach(k=>b.style.removeProperty(k));return;}
+  const antes=b.classList.contains('ajuste');
+  if(!modoAjuste()){b.classList.remove('ajuste');['--s','--sh','--z'].forEach(k=>b.style.removeProperty(k));if(antes)render();return;}
   b.classList.add('ajuste');
+  if(!antes)render(); // quantidade de eventos listados muda com o modo
   // O painel é desenhado como numa TV Full HD (1920 de largura) e ampliado ou reduzido
   // para a tela real: numa TV 4K fica igual, só que mais nítido; num monitor menor, reduzido.
   b.style.setProperty('--z',Math.max(.5,Math.min(3,innerWidth/1920)).toFixed(4));
@@ -82,6 +84,7 @@ function ajustarPainel(){
   b.style.setProperty('--sh','1');
   busca('--s',.3,2.4);   // tamanho geral dos cartões (largura, altura e letras)
   busca('--sh',1,1.8);   // depois estica só a altura para ocupar a sobra da tela
+  requestAnimationFrame(marcarMais);
 }
 let ajusteT=null;
 // Depois que a tela termina de desenhar (números, fila, fontes), recalcula o encaixe.
@@ -122,7 +125,8 @@ function render(){
   const fila=at.filter(e=>e.status!=='operando').sort((a,b)=>(ORDEM_FILA[a.status]-ORDEM_FILA[b.status])||(a.desde-b.desde));
   $('#fila-n').textContent=fila.length?fila.length+' parados':'';
   $('#fila').innerHTML=fila.length?fila.map(e=>`<button type="button" class="fr" data-c="${e.status}" data-tag="${esc(e.tag)}"><i></i><span style="min-width:0"><span><b>${esc(e.tag)}</b><span class="fr-s">${ST[e.status].curto}</span></span><p>${esc(e.motivo)}${e.obs?' · '+esc(e.obs):''}${e.tecnico&&e.status!=='aguardando'?' · '+esc(e.tecnico):''}</p></span><span class="tm" data-desde="${e.desde}"></span></button>`).join(''):'<p class="vazio">Toda a frota está operando.</p>';
-  $('#evs').innerHTML=eventos.length?eventos.slice(0,qrFixo?5:9).map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${hhmm(v.t)}</time><span><b>${esc(v.tag)}</b><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join(''):'<p class="vazio">Sem eventos ainda.</p>';
+  $('#evs').innerHTML=eventos.length?eventos.slice(0,document.body.classList.contains('ajuste')?40:(qrFixo?5:9)).map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${hhmm(v.t)}</time><span><b>${esc(v.tag)}</b><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join(''):'<p class="vazio">Sem eventos ainda.</p>';
+  requestAnimationFrame(marcarMais);
   if(aberto){if(!equip[aberto.tag])fechar();else if(equip[aberto.tag].status!==aberto.st)renderModal();}
   if(vista==='cadastro')renderCad();
   if(vista==='config')renderCfg();
@@ -422,6 +426,9 @@ $('#dlg').addEventListener('click',async ev=>{
 });
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')fechar();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&aberto)fechar();});
+// Indica (esmaecido embaixo) quando a fila ou os eventos têm mais itens para rolar.
+function marcarMais(){for(const el of [$('#fila'),$('#evs')])if(el)el.dataset.mais=el.scrollTop+el.clientHeight<el.scrollHeight-2?'1':'0';}
+['#fila','#evs'].forEach(s=>$(s).addEventListener('scroll',marcarMais,{passive:true}));
 $('#fila').addEventListener('click',e=>{const b=e.target.closest('[data-tag]');if(b)abrir(b.dataset.tag);});
 
 /* ---------- Usuários e sessão ---------- */
