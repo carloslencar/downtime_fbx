@@ -4,8 +4,8 @@ Sistema para a **Operação** e a **Manutenção** conversarem sobre equipamento
 nas TVs (sala de controle e oficina) e nos celulares.
 
 - A operação abre a parada, a manutenção assume, solicita peças (quando precisa) e libera, e a operação confirma o recebimento.
-- O planejamento recebe as solicitações de peças, informa a ordem de compra e marca a chegada; quando todas as peças chegam,
-  o equipamento volta sozinho para "Em manutenção".
+- O planejamento recebe as solicitações de peças, informa a ordem de compra e marca a chegada; o equipamento passa
+  sozinho por **Peças solicitadas** → **Aguardando peças** (todas com OC) → **Peças recebidas**, e aí um mecânico assume.
 - Tudo aparece na hora em todas as telas, com a cor do status, o tempo parado e a fila de atendimento.
 - Correções e cancelamentos ficam registrados com justificativa; dá para desfazer o último lançamento por 10 minutos.
 - O administrador exporta os dados para o Excel e conecta o Power Query direto no servidor.
@@ -66,9 +66,12 @@ Depois de mudar, rode `docker compose up -d`.
   lançamentos feitos no celular sem sinal ficam guardados e são enviados assim que a conexão volta
   (desde que a página continue aberta).
 - **Peças:** a manutenção toca em **Solicitar peças** no equipamento e lista uma ou mais peças (descrição, código e
-  quantidade). O equipamento fica em **Peças solicitadas** e a solicitação aparece na aba **Peças**, com o número da parada.
-  O planejamento informa a ordem de compra (a mesma OC para várias peças ou uma por peça) e marca a chegada. Manutenção e
-  planejamento podem acrescentar peças. Quando todas chegam, o equipamento volta para **Em manutenção** automaticamente.
+  quantidade). A solicitação aparece na aba **Peças**, com o número da parada. O status do equipamento acompanha as peças:
+  - **Peças solicitadas:** há peça sem ordem de compra;
+  - **Aguardando peças:** o planejamento já lançou a ordem de compra de todas (a mesma OC para várias ou uma por peça);
+  - **Peças recebidas:** todas chegaram. O equipamento fica sem técnico até um mecânico tocar em **Assumir atendimento**
+    (não volta automaticamente para quem pediu).
+  Manutenção e planejamento podem acrescentar peças; uma peça nova sem OC volta o status para Peças solicitadas.
 - **Transferir atendimento:** com o equipamento em manutenção (ou com peças solicitadas), a manutenção toca em
   **Transferir atendimento**, escolhe o novo técnico e, se quiser, escreve uma observação (ex.: troca de turno).
   A etapa e o tempo não mudam; a troca aparece nos eventos e na coluna "Responsáveis" dos relatórios.

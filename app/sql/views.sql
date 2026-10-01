@@ -21,6 +21,8 @@ $$ select case s
     when 'aguardando'      then 'Aguardando manutenção'
     when 'em_manutencao'   then 'Em manutenção'
     when 'aguardando_peca' then 'Peças solicitadas'
+    when 'aguardando_entrega' then 'Aguardando peças'
+    when 'pecas_recebidas' then 'Peças recebidas'
     when 'liberado'        then 'Liberado · aguardando operação'
     when 'correcao'        then 'Correção'
     else s end $$;

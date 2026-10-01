@@ -3,7 +3,7 @@
   --bg:#0B0F12;--panel:#12181D;--panel-2:#182027;--line:#243039;--line-2:#31404B;
   --text:#E3E9ED;--muted:#8E9BA5;--faint:#5A6772;
   --tire:#070A0C;--hub:#3B4750;--glass:#A9CBE0;
-  --s-ok:#52B886;--s-ok-ico:#6E8B7C;--s-wait:#F2493E;--s-maint:#F29B24;--s-peca:#AA88F3;--s-lib:#3FA3F6;
+  --s-ok:#52B886;--s-ok-ico:#6E8B7C;--s-wait:#F2493E;--s-maint:#F29B24;--s-peca:#AA88F3;--s-entrega:#E46FD0;--s-receb:#E8C547;--s-lib:#3FA3F6;
   --f-disp:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
   --f-body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
   --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
@@ -77,6 +77,10 @@ button:focus-visible{outline:2px solid var(--glass);outline-offset:2px}
 .eq[data-st="aguardando"]{--c:var(--s-wait)}
 .eq[data-st="em_manutencao"]{--c:var(--s-maint)}
 .eq[data-st="aguardando_peca"]{--c:var(--s-peca)}
+.eq[data-st="aguardando_entrega"]{--c:var(--s-entrega)}
+.eq[data-st="pecas_recebidas"]{--c:var(--s-receb)}
+.eq[data-st="pecas_recebidas"]{animation:alerta-r 1.8s ease-in-out infinite}
+@keyframes alerta-r{50%{box-shadow:0 0 0 3px color-mix(in srgb,var(--s-receb) 45%,transparent)}}
 .eq[data-st="liberado"]{--c:var(--s-lib)}
 .eq:not([data-st="operando"]){background:color-mix(in srgb,var(--c) 14%,var(--panel-2));border-color:color-mix(in srgb,var(--c) 75%,transparent)}
 .eq:not([data-st="operando"]) .eq-ico{color:var(--c)}
@@ -105,7 +109,7 @@ button:focus-visible{outline:2px solid var(--glass);outline-offset:2px}
 .ev b{font-family:var(--f-disp);font-size:16px;font-weight:700;letter-spacing:.03em;margin-right:5px}
 .ev .a{color:var(--c)}
 .ev small{display:block;color:var(--faint);font-size:12px}
-[data-c="aguardando"]{--c:var(--s-wait)}[data-c="em_manutencao"]{--c:var(--s-maint)}[data-c="aguardando_peca"]{--c:var(--s-peca)}[data-c="liberado"]{--c:var(--s-lib)}[data-c="operando"]{--c:var(--s-ok)}
+[data-c="aguardando"]{--c:var(--s-wait)}[data-c="em_manutencao"]{--c:var(--s-maint)}[data-c="aguardando_peca"]{--c:var(--s-peca)}[data-c="aguardando_entrega"]{--c:var(--s-entrega)}[data-c="pecas_recebidas"]{--c:var(--s-receb)}[data-c="liberado"]{--c:var(--s-lib)}[data-c="operando"]{--c:var(--s-ok)}
 
 .legenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);padding:0 2px}
 .legenda span{display:inline-flex;align-items:center;gap:6px}
@@ -473,7 +477,7 @@ input[type=date],input[type=datetime-local]{line-height:40px}
   .d-h{grid-template-columns:80px minmax(0,1fr) auto}.d-h svg{width:80px;height:47px}.d-h h2{font-size:30px}
   .k-v{font-size:32px}
 }
-@media (prefers-reduced-motion:reduce){.eq[data-st="aguardando"],.eq.mudou::after,.toast{animation:none}}
+@media (prefers-reduced-motion:reduce){.eq[data-st="aguardando"],.eq[data-st="pecas_recebidas"],.eq.mudou::after,.toast{animation:none}}
 
 /* Painel encaixado na tela (TVs e monitores deitados): tudo visível, sem rolar.
    O tamanho dos cartões (--s) é calculado em js/app.js (ajustarPainel). */
@@ -597,3 +601,7 @@ body.escala{margin:0}
   .p-tab .pq{flex:1 1 100%;display:flex;gap:6px;align-items:baseline}.p-tab .pq span{font-size:12px;color:var(--muted)}
   .p-tab .po{flex:1 1 100%}.p-tab .pc{flex:1 1 auto}.p-tab .px{flex:0 0 auto}
 }
+/* KPI de peças: total e divisão por situação */
+.kp{position:relative}
+.k-sub{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted);margin-top:4px;min-height:16px}
+.k-sub span b{color:var(--c);font-family:var(--f-mono);font-weight:600}

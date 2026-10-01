@@ -48,7 +48,7 @@
     </div>
     <div class="k" style="--c:var(--s-wait)"><div class="k-l"><i></i>Aguardando atendimento</div><div class="k-v" id="k-aguardando">0</div></div>
     <div class="k" style="--c:var(--s-maint)"><div class="k-l"><i></i>Em manutenção</div><div class="k-v" id="k-em_manutencao">0</div></div>
-    <div class="k" style="--c:var(--s-peca)"><div class="k-l"><i></i>Peças solicitadas</div><div class="k-v" id="k-aguardando_peca">0</div></div>
+    <div class="k kp" style="--c:var(--s-peca)"><div class="k-l"><i></i>Peças</div><div class="k-v" id="k-pecas">0</div><div class="k-sub" id="k-pecas-sub"></div></div>
     <div class="k" style="--c:var(--s-lib)"><div class="k-l"><i></i>Liberados p/ operação</div><div class="k-v" id="k-liberado">0</div></div>
     <div class="k espera"><div class="k-l">Maior espera sem atendimento</div><div class="k-v" id="k-espera">—</div></div>
   </section>
@@ -60,7 +60,7 @@
       <button type="button" class="painel qrfix" id="qrfix" hidden aria-label="QR code de acesso pelo celular"><canvas id="qrfix-cv" width="120" height="120" aria-hidden="true"></canvas><span><b>Acesse pelo celular</b><small>Aponte a câmera para abrir o quadro e registrar paradas.</small></span></button>
       <section class="painel evs"><h3>Últimos eventos</h3><div class="lista" id="evs"></div></section>
       <div class="legenda">
-        <span data-c="operando"><i></i>Operando</span><span data-c="aguardando"><i></i>Aguardando</span><span data-c="em_manutencao"><i></i>Em manutenção</span><span data-c="aguardando_peca"><i></i>Peças solic.</span><span data-c="liberado"><i></i>Liberado</span>
+        <span data-c="operando"><i></i>Operando</span><span data-c="aguardando"><i></i>Aguardando</span><span data-c="em_manutencao"><i></i>Em manutenção</span><span data-c="aguardando_peca"><i></i>Peças solic.</span><span data-c="aguardando_entrega"><i></i>Aguard. peças</span><span data-c="pecas_recebidas"><i></i>Peças receb.</span><span data-c="liberado"><i></i>Liberado</span>
       </div>
     </aside>
   </div>

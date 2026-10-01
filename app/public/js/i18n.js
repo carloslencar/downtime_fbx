@@ -53,6 +53,8 @@ const EN={
 };
 const PAT=[
  [/^Parada nº (\d+)$/,'Stop #$1'],
+ [/^aguardando (\d+) (itens|item)$/,'awaiting $1 item(s)'],
+ [/^(\d+) (itens|item) sem ordem de compra: (.+)$/,'$1 item(s) without PO: $3'],
  [/^Atendimento transferido para (.+)\.$/,'Job handed over to $1.'],
  [/^recebeu de (.+) às (\d\d:\d\d)$/,'taken over from $1 at $2'],
  [/^Hoje com$/,'Currently with'],
@@ -130,6 +132,10 @@ Object.assign(EN,{
 'Lembrete de espera':'Waiting reminder','Repete dois bipes enquanto houver equipamento aguardando atendimento há mais de:':'Repeats two beeps while any unit has been waiting for service for more than:',
 'Volume':'Volume','O volume final também depende do volume da TV ou do computador.':'The final loudness also depends on the TV or computer volume.',
 'Ouvir':'Play',
+'Aguardando peças':'Awaiting parts','Aguard. peças':'Awaiting parts','Peças recebidas · aguardando mecânico':'Parts received · waiting for mechanic','Peças receb.':'Parts recv.',
+'Ordens de compra lançadas':'Purchase orders entered','aguardando mecânico assumir':'waiting for a mechanic to take over','atendimento continua':'work continues',
+'Todas as peças chegaram. Escolha quem assume o atendimento agora.':'All parts have arrived. Choose who takes over the job now.','Assumiu após a chegada das peças':'Took over after parts arrived',
+'solic.':'req.','aguard.':'awaiting','receb.':'recv.',
 'Responsável:':'Responsible:','Transferir atendimento':'Hand over job','Transferir':'Hand over','Passar para':'Hand over to','Observação (opcional)':'Note (optional)',
 'Escolha outro técnico.':'Pick another technician.','Atendimento transferido':'Job handed over','Responsáveis':'Responsible',
 'Não há outro técnico de manutenção ativo para receber o atendimento. Cadastre na aba Usuários.':'There is no other active maintenance technician to take the job. Add one in the Users tab.',

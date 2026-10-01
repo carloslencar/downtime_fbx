@@ -139,26 +139,43 @@ test('API com banco', { skip: !URL_DB && 'defina DATABASE_URL para rodar' }, asy
       const it = (await req('GET', `/api/docs/pecas/${pid}_${k}`)).j.data;
       assert.equal((await req('PUT', `/api/docs/pecas/${pid}_${k}`, { ...it, oc: '4500123' }, cP)).status, 200);
     }
+    await espera();
+    // todas com OC -> "Aguardando peças"
+    assert.equal((await req('GET', '/api/docs/equipamentos/WL-01')).j.data.status, 'aguardando_entrega');
+    feed = (await req('GET', '/api/docs/log/feed')).j.data.eventos;
+    assert.equal(feed[0].acao, 'Ordens de compra lançadas');
     const a2 = (await req('GET', `/api/docs/pecas/${pid}_a`)).j.data;
     await req('PUT', `/api/docs/pecas/${pid}_a`, { ...a2, chegou: true, chegouEm: Date.now() }, cP);
     await espera();
-    assert.equal((await req('GET', '/api/docs/equipamentos/WL-01')).j.data.status, 'aguardando_peca');
-    // manutenção adiciona mais uma peça -> evento para o planejamento
+    assert.equal((await req('GET', '/api/docs/equipamentos/WL-01')).j.data.status, 'aguardando_entrega');
+    // manutenção adiciona mais uma peça (sem OC) -> volta para "Peças solicitadas"
     await req('PUT', `/api/docs/pecas/${pid}_c`, { paradaId: pid, descricao: 'Anel de vedação', qtd: 4, oc: '', chegou: false, criadoEm: Date.now() }, cMan);
+    await espera();
+    assert.equal((await req('GET', '/api/docs/equipamentos/WL-01')).j.data.status, 'aguardando_peca');
+    feed = (await req('GET', '/api/docs/log/feed')).j.data.eventos;
+    assert.equal(feed[0].acao, 'Peças solicitadas');
+    const c0 = (await req('GET', `/api/docs/pecas/${pid}_c`)).j.data;
+    await req('PUT', `/api/docs/pecas/${pid}_c`, { ...c0, oc: '4500999' }, cP);
+    await espera();
+    assert.equal((await req('GET', '/api/docs/equipamentos/WL-01')).j.data.status, 'aguardando_entrega');
+    // nova peça numa solicitação que já está com OC lançada: evento para o planejamento
+    await req('PUT', `/api/docs/pecas/${pid}_d`, { paradaId: pid, descricao: 'Graxa', qtd: 1, oc: '4500999', chegou: false, criadoEm: Date.now() }, cP);
     await espera();
     feed = (await req('GET', '/api/docs/log/feed')).j.data.eventos;
     assert.equal(feed[0].acao, 'Peças adicionadas');
-    for (const k of ['b', 'c']) {
+    for (const k of ['b', 'c', 'd']) {
       const it = (await req('GET', `/api/docs/pecas/${pid}_${k}`)).j.data;
       await req('PUT', `/api/docs/pecas/${pid}_${k}`, { ...it, chegou: true, chegouEm: Date.now() }, cP);
     }
     await espera();
+    // tudo chegou -> "Peças recebidas", sem técnico: um mecânico precisa assumir
     const fim = (await req('GET', '/api/docs/equipamentos/WL-01')).j.data;
-    assert.equal(fim.status, 'em_manutencao');
+    assert.equal(fim.status, 'pecas_recebidas');
+    assert.equal(fim.tecnico, '');
     feed = (await req('GET', '/api/docs/log/feed')).j.data.eventos;
     assert.equal(feed[0].acao, 'Peças recebidas');
     const etapas = (await req('GET', '/api/docs/paradas/' + pid)).j.data.etapas.map(e => e.status);
-    assert.deepEqual(etapas.slice(-2), ['aguardando_peca', 'em_manutencao']);
+    assert.deepEqual(etapas.slice(-2), ['aguardando_entrega', 'pecas_recebidas']);
     const csv = await req('GET', '/api/relatorios/pecas.csv?chave=chave-teste');
     assert.equal(csv.status, 200);
     assert.match(csv.txt, /Filtro hidráulico/);

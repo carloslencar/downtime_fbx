@@ -15,7 +15,7 @@ os dados novos.
 | Tabela | Uma linha por | Campos principais |
 |--------|---------------|-------------------|
 | Paradas | parada | ID, Nº, TAG, Frota, Tipo, Área, Motivo, Início, Fim, Duração (h), Situação, Técnico, Horímetros |
-| Etapas | etapa de cada parada | Parada, TAG, Etapa (aguardando, em manutenção, peças solicitadas, liberado), Início, Fim, Duração (h) |
+| Etapas | etapa de cada parada | Parada, TAG, Etapa (aguardando, em manutenção, peças solicitadas, aguardando peças, peças recebidas, liberado), Início, Fim, Duração (h) |
 | Correções | correção ou cancelamento | Parada, Data, Por, Campo, De, Para, Justificativa |
 | Peças | peça solicitada | Parada nº, TAG, Peça, Código, Quantidade, Solicitada em/por, Ordem de compra, Chegou em, Espera (h), Situação |
 | Equipamentos | equipamento | TAG, Frota, Tipo, Porte, Modelo, Área, Ano, Horímetro, Situação atual |

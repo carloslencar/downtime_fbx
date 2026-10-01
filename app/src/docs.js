@@ -197,27 +197,49 @@ async function conferirPecas(paradaId, { novas, usuario }) {
   const now = Date.now();
   const n = par.numero ? `Parada nº ${par.numero}` : 'Parada';
 
+  // Situações ligadas às peças:
+  //   aguardando_peca     "Peças solicitadas"  - há peça pendente sem ordem de compra
+  //   aguardando_entrega  "Aguardando peças"   - todas as pendentes já têm ordem de compra
+  //   pecas_recebidas     "Peças recebidas"    - tudo chegou; um mecânico precisa assumir o atendimento
+  const STATUS_PECAS = ['em_manutencao', 'aguardando_peca', 'aguardando_entrega', 'pecas_recebidas'];
   let novoStatus = null, acao = '', detalhe = '';
-  if (daParada && pendentes.length && eq.status === 'em_manutencao') {
-    novoStatus = 'aguardando_peca'; acao = 'Peças solicitadas';
-    detalhe = `${n} · ${pendentes.length} ${pendentes.length > 1 ? 'itens' : 'item'}: ${nomeLista(pendentes)}`;
-  } else if (daParada && !pendentes.length && eq.status === 'aguardando_peca') {
-    novoStatus = 'em_manutencao';
+  if (daParada && STATUS_PECAS.includes(eq.status)) {
     const chegaram = ativos.filter(i => i.chegou).length;
-    acao = chegaram ? 'Peças recebidas' : 'Solicitação de peças cancelada';
-    detalhe = chegaram ? `${n} · ${chegaram} ${chegaram > 1 ? 'itens chegaram' : 'item chegou'} · atendimento retomado` : `${n} · atendimento retomado`;
+    let alvo = eq.status;
+    if (pendentes.length) alvo = pendentes.some(i => !String(i.oc || '').trim()) ? 'aguardando_peca' : 'aguardando_entrega';
+    else if (eq.status === 'aguardando_peca' || eq.status === 'aguardando_entrega') alvo = chegaram ? 'pecas_recebidas' : 'em_manutencao';
+    if (alvo !== eq.status) {
+      novoStatus = alvo;
+      if (alvo === 'aguardando_peca') {
+        acao = 'Peças solicitadas';
+        const sem = pendentes.filter(i => !String(i.oc || '').trim());
+        detalhe = `${n} · ${sem.length} ${sem.length > 1 ? 'itens' : 'item'} sem ordem de compra: ${nomeLista(sem)}`;
+      } else if (alvo === 'aguardando_entrega') {
+        acao = 'Ordens de compra lançadas';
+        const ocs = [...new Set(pendentes.map(i => String(i.oc).trim()))];
+        detalhe = `${n} · aguardando ${pendentes.length} ${pendentes.length > 1 ? 'itens' : 'item'} · OC ${ocs.join(', ')}`;
+      } else if (alvo === 'pecas_recebidas') {
+        acao = 'Peças recebidas';
+        detalhe = `${n} · ${chegaram} ${chegaram > 1 ? 'itens chegaram' : 'item chegou'} · aguardando mecânico assumir`;
+      } else {
+        acao = 'Solicitação de peças cancelada';
+        detalhe = `${n} · atendimento continua`;
+      }
+    }
   }
 
   const eventos = [];
   if (novoStatus) {
     const antes = { ...eq }; delete antes.anterior; delete antes.ultAcao;
     const novoEq = { ...antes, status: novoStatus, desde: now, anterior: antes,
-      ultAcao: { a: novoStatus === 'aguardando_peca' ? 'pecas' : 'pecas_ok', t: now, papel: 'sistema', uid: '', nome: usuario ? usuario.curto || '' : '' } };
+      ultAcao: { a: 'pecas', t: now, papel: 'sistema', uid: '', nome: usuario ? usuario.curto || '' : '' } };
+    // Peças recebidas: o atendimento fica sem responsável até um mecânico assumir de novo.
+    if (novoStatus === 'pecas_recebidas') novoEq.tecnico = '';
     const novaPar = { ...par, etapas: [...(par.etapas || []), { status: novoStatus, t: now, por: quem }] };
     await gravar({ usuario, col: 'equipamentos', id: eq.tag, op: 'set', dados: novoEq });
     await gravar({ usuario, col: 'paradas', id: paradaId, op: 'set', dados: novaPar });
     eventos.push({ t: now, tag: eq.tag, status: novoStatus, acao, por: quem, detalhe });
-  } else if (novas.length && eq.status === 'aguardando_peca' && daParada) {
+  } else if (novas.length && (eq.status === 'aguardando_peca' || eq.status === 'aguardando_entrega') && daParada) {
     const l = itens.filter(i => novas.includes(i.id));
     if (l.length) eventos.push({ t: now, tag: eq.tag, status: 'aguardando_peca', acao: 'Peças adicionadas', por: quem, detalhe: `${n} · ${nomeLista(l)}` });
   }

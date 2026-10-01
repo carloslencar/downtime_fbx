@@ -36,7 +36,8 @@ Em **Configurações › Esta tela › Alarme sonoro** cada aparelho liga o seu 
 - **Equipamento liberado:** carrilhão curto quando a manutenção libera (bom para a sala de controle).
 - **Peças solicitadas:** quando a manutenção pede ou adiciona peças (bom para a tela do planejamento).
 - **Peças recebidas:** quando todas as peças de uma parada chegam (bom para a TV da oficina).
-- **Lembrete de espera:** repete dois bipes enquanto houver equipamento aguardando atendimento há mais
+- **Lembrete de espera:** repete dois bipes enquanto houver equipamento aguardando atendimento (ou com peças
+  recebidas esperando um mecânico) há mais
   do que o tempo escolhido (padrão 15 min).
 - **Volume** e botões **Ouvir** para testar.
 

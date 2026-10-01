@@ -37,12 +37,13 @@ Tabelas de apoio: `credenciais` (hash do PIN), `sessoes`, `eventos` (histórico 
 `historico` (cada gravação com o usuário que fez), `meta` (chave de relatórios, controle da importação),
 `migracoes`.
 
-Situações de um equipamento: `operando` › `aguardando` › `em_manutencao` ⇄ `aguardando_peca` (Peças solicitadas) › `liberado` › `operando`.
+Situações de um equipamento: `operando` › `aguardando` › `em_manutencao` › `aguardando_peca` (Peças solicitadas)
+› `aguardando_entrega` (Aguardando peças) › `pecas_recebidas` (Peças recebidas) › `em_manutencao` › `liberado` › `operando`.
 
-A passagem entre `em_manutencao` e `aguardando_peca` é feita pelo servidor (`docs.js`, conferência das peças):
-quando há peça pendente numa parada em manutenção, vai para "Peças solicitadas"; quando não sobra nenhuma
-pendente (todas chegaram ou foram canceladas), volta para "Em manutenção". Ordem de compra e chegada só são
-gravadas pelo planejamento ou pelo administrador (`regras.js`).
+As situações de peças são definidas pelo servidor (`docs.js`, conferência das peças) depois de cada gravação de peça:
+peça pendente sem ordem de compra → `aguardando_peca`; todas as pendentes com OC → `aguardando_entrega`; nenhuma
+pendente e alguma chegou → `pecas_recebidas` (o técnico é limpo e um mecânico precisa assumir); todas canceladas →
+volta para `em_manutencao`. Ordem de compra e chegada só são gravadas pelo planejamento ou pelo administrador (`regras.js`).
 
 ## API
 

@@ -4,10 +4,12 @@ const ST={
   aguardando:{rot:'Aguardando manutenção',curto:'Aguardando'},
   em_manutencao:{rot:'Em manutenção',curto:'Em manutenção'},
   aguardando_peca:{rot:'Peças solicitadas',curto:'Peças solic.'},
+  aguardando_entrega:{rot:'Aguardando peças',curto:'Aguard. peças'},
+  pecas_recebidas:{rot:'Peças recebidas · aguardando mecânico',curto:'Peças receb.'},
   liberado:{rot:'Liberado · aguardando operação',curto:'Liberado'}
 };
-const COR={operando:'s-ok-ico',aguardando:'s-wait',em_manutencao:'s-maint',aguardando_peca:'s-peca',liberado:'s-lib'};
-const ORDEM_FILA={aguardando:0,em_manutencao:1,aguardando_peca:2,liberado:3};
+const COR={operando:'s-ok-ico',aguardando:'s-wait',em_manutencao:'s-maint',aguardando_peca:'s-peca',aguardando_entrega:'s-entrega',pecas_recebidas:'s-receb',liberado:'s-lib'};
+const ORDEM_FILA={aguardando:0,pecas_recebidas:1,em_manutencao:2,aguardando_peca:3,aguardando_entrega:4,liberado:5};
 const TIPO={};TIPOS.forEach(t=>TIPO[t.id]=t);
 
 let feedDb=null,mode='local',db=null,papel='operacao',aberto=null,ultimoT=0,primeiroFeed=true,recebeuEq=false,gravando=false;
@@ -102,7 +104,7 @@ function render(){
   const sig=JSON.stringify(est.map(x=>[x.f.id,x.f.nome,x.tags.map(t=>t+'|'+(equip[t].porte||'')+'|'+equip[t].tipo)]));
   if(sig!==estruturaSig){estruturaSig=sig;montarFrota(est);agendarAjuste();}
   const tags=est.flatMap(x=>x.tags);
-  const cont={operando:0,aguardando:0,em_manutencao:0,aguardando_peca:0,liberado:0};
+  const cont={operando:0,aguardando:0,em_manutencao:0,aguardando_peca:0,aguardando_entrega:0,pecas_recebidas:0,liberado:0};
   for(const {f,tags:tg} of est){
     let ok=0;
     for(const tag of tg){
@@ -121,13 +123,15 @@ function render(){
   const tot=tags.length;
   $('#k-disp').innerHTML=`${cont.operando}<small>/${tot}</small>`;
   $('#k-pct').textContent=tot?Math.round(cont.operando/tot*100)+'%':'';
-  for(const s of ['aguardando','em_manutencao','aguardando_peca','liberado']){const el=$('#k-'+s);el.textContent=cont[s];el.classList.toggle('zero',!cont[s]);}
+  for(const s of ['aguardando','em_manutencao','liberado']){const el=$('#k-'+s);el.textContent=cont[s];el.classList.toggle('zero',!cont[s]);}
+  {const tp=cont.aguardando_peca+cont.aguardando_entrega+cont.pecas_recebidas,el=$('#k-pecas');el.textContent=tp;el.classList.toggle('zero',!tp);
+   $('#k-pecas-sub').innerHTML=tp?[['aguardando_peca','solic.'],['aguardando_entrega','aguard.'],['pecas_recebidas','receb.']].filter(([s])=>cont[s]).map(([s,l])=>`<span data-c="${s}"><b>${cont[s]}</b> ${l}</span>`).join(''):'';}
   const at=ativos();
   const esp=at.filter(e=>e.status==='aguardando').sort((a,b)=>a.desde-b.desde)[0];
   $('#k-espera').innerHTML=esp?`${esc(esp.tag)}<em data-desde="${esp.desde}"></em>`:'<span style="color:var(--faint)">Nenhuma</span>';
   const fila=at.filter(e=>e.status!=='operando').sort((a,b)=>(ORDEM_FILA[a.status]-ORDEM_FILA[b.status])||(a.desde-b.desde));
   $('#fila-n').textContent=fila.length?fila.length+' parados':'';
-  $('#fila').innerHTML=fila.length?fila.map(e=>`<button type="button" class="fr" data-c="${e.status}" data-tag="${esc(e.tag)}"><i></i><span style="min-width:0"><span><b>${esc(e.tag)}</b><span class="fr-s">${ST[e.status].curto}</span></span><p>${esc(e.motivo)}${e.status==='aguardando_peca'&&resumoPecas(e.paradaId).total?' · '+esc(textoResumoPecas(e.paradaId)):(e.obs?' · '+esc(e.obs):'')}${e.tecnico&&e.status!=='aguardando'?' · '+esc(e.tecnico):''}</p></span><span class="tm" data-desde="${e.desde}"></span></button>`).join(''):'<p class="vazio">Toda a frota está operando.</p>';
+  $('#fila').innerHTML=fila.length?fila.map(e=>`<button type="button" class="fr" data-c="${e.status}" data-tag="${esc(e.tag)}"><i></i><span style="min-width:0"><span><b>${esc(e.tag)}</b><span class="fr-s">${ST[e.status].curto}</span></span><p>${esc(e.motivo)}${['aguardando_peca','aguardando_entrega','pecas_recebidas'].includes(e.status)&&resumoPecas(e.paradaId).total?' · '+esc(textoResumoPecas(e.paradaId)):(e.obs?' · '+esc(e.obs):'')}${e.tecnico&&e.status!=='aguardando'?' · '+esc(e.tecnico):''}</p></span><span class="tm" data-desde="${e.desde}"></span></button>`).join(''):'<p class="vazio">Toda a frota está operando.</p>';
   $('#evs').innerHTML=eventos.length?eventos.slice(0,document.body.classList.contains('ajuste')?40:(qrFixo?5:9)).map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${hhmm(v.t)}</time><span><b>${esc(v.tag)}</b><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join(''):'<p class="vazio">Sem eventos ainda.</p>';
   requestAnimationFrame(marcarMais);
   if(aberto){if(!equip[aberto.tag])fechar();else if(equip[aberto.tag].status!==aberto.st)renderModal();}
@@ -202,7 +206,15 @@ async function aplicar(a,tag,patch,ev){
   }else{
     par=paradaAtual(atual)||paradaNova(atual);novo.paradaId=par.id;
     par.etapas.push({status:novo.status,t:now,por:ev.por});
-    if(patch.tecnico)par.tecnico=patch.tecnico;
+    if(patch.tecnico){
+      const ant=par.tecnico||'';
+      if(ant&&ant!==patch.tecnico){
+        const ini=(par.etapas||[]).find(x=>x.status==='em_manutencao');
+        const hist=par.responsaveis&&par.responsaveis.length?par.responsaveis:[{tecnico:ant,t:ini?ini.t:par.inicio,por:''}];
+        par.responsaveis=[...hist,{tecnico:patch.tecnico,de:ant,t:now,por:ev.por,nota:'Assumiu após a chegada das peças'}];
+      }
+      par.tecnico=patch.tecnico;
+    }
     if(patch.obs!==undefined&&novo.status!=='operando')par.obs=patch.obs;
     if(a==='liberar'&&ev.hor!=null)par.horFim=ev.hor;
     if(a==='receber'){par.fim=now;novo.paradaId='';}
@@ -327,6 +339,7 @@ function acoesPapel(e){
   }
   if(e.status==='operando')return nota('Paradas são abertas pela operação.');
   if(e.status==='liberado')return nota('Liberado. Aguardando a operação confirmar o recebimento.');
+  if(e.status==='pecas_recebidas')return listaPecasModal(e)+`<p class="nota">Todas as peças chegaram. Escolha quem assume o atendimento agora.</p><div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos().map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
   if(e.status==='aguardando')return `<div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos().map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
   const resp=respHtml(e);
   const obs=resp+`<div class="fs"><label for="obs">${e.status==='em_manutencao'?'Nota (nº do pedido ou serviço feito)':'Nota da liberação'}</label><input type="text" id="obs" maxlength="80" placeholder="${e.status==='em_manutencao'?'Pedido 4502 · filtro hidráulico':'Serviço concluído, testado em campo'}"></div>`;
@@ -340,7 +353,7 @@ function acoesPapel(e){
    A manutenção pode passar o equipamento para outro técnico (troca de equipe ou de turno).
    Não muda a etapa nem o tempo; fica registrado na parada (responsaveis) e no histórico de eventos. */
 function respHtml(e){
-  if(!(e.status==='em_manutencao'||e.status==='aguardando_peca')||!(papel==='manutencao'||papel==='admin'))return '';
+  if(!['em_manutencao','aguardando_peca','aguardando_entrega'].includes(e.status)||!(papel==='manutencao'||papel==='admin'))return '';
   const par=paradaAtual(e),r=par&&par.responsaveis&&par.responsaveis.length>1?par.responsaveis[par.responsaveis.length-1]:null;
   return `<div class="desf resp"><span>Responsável: <b>${esc(e.tecnico||'—')}</b>${r?` · recebeu de ${esc(r.de||'—')} às ${hhmm(r.t)}`:''}</span><button type="button" data-acao="modoTransf">Transferir atendimento</button></div>`;
 }
@@ -1232,8 +1245,8 @@ $('#v-dados').addEventListener('change',ev=>{
 /* ---------- Retrato do painel em JPEG 16:9 ---------- */
 function tt(s){return LANG==='en'&&typeof tr==='function'?tr(s):s;}
 function coresTema(){const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();
-  return {bg:g('--bg'),panel:g('--panel'),panel2:g('--panel-2'),line:g('--line'),line2:g('--line-2'),text:g('--text'),muted:g('--muted'),faint:g('--faint'),tire:g('--tire'),hub:g('--hub'),glass:g('--glass'),ok:g('--s-ok'),okIco:g('--s-ok-ico'),wait:g('--s-wait'),maint:g('--s-maint'),peca:g('--s-peca'),lib:g('--s-lib')};}
-function corSt(C,st){return {operando:C.ok,aguardando:C.wait,em_manutencao:C.maint,aguardando_peca:C.peca,liberado:C.lib}[st]||C.muted;}
+  return {bg:g('--bg'),panel:g('--panel'),panel2:g('--panel-2'),line:g('--line'),line2:g('--line-2'),text:g('--text'),muted:g('--muted'),faint:g('--faint'),tire:g('--tire'),hub:g('--hub'),glass:g('--glass'),ok:g('--s-ok'),okIco:g('--s-ok-ico'),wait:g('--s-wait'),maint:g('--s-maint'),peca:g('--s-peca'),entrega:g('--s-entrega'),receb:g('--s-receb'),lib:g('--s-lib')};}
+function corSt(C,st){return {operando:C.ok,aguardando:C.wait,em_manutencao:C.maint,aguardando_peca:C.peca,aguardando_entrega:C.entrega,pecas_recebidas:C.receb,liberado:C.lib}[st]||C.muted;}
 function hexRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return [n>>16&255,n>>8&255,n&255];}
 function misturar(a,b,t){const A=hexRgb(a),B=hexRgb(b);return 'rgb('+A.map((v,i)=>Math.round(v*t+B[i]*(1-t))).join(',')+')';}
 const icoCache={};
@@ -1280,9 +1293,9 @@ async function desenharRetrato(escala){
   ctx.fillStyle=C.muted;ctx.font=`500 14px ${FB}`;
   ctx.fillText((LANG==='en'?'Snapshot ':'Retrato de ')+d.toLocaleDateString(LANG==='en'?'en-US':'pt-BR')+' · '+(LANG==='en'?(dia?'Shift A':'Shift B'):(dia?'Turno A':'Turno B')),W-26,74);ctx.textAlign='left';
   /* indicadores */
-  const cont={operando:0,aguardando:0,em_manutencao:0,aguardando_peca:0,liberado:0};tags.forEach(t=>cont[equip[t].status]++);
+  const cont={operando:0,aguardando:0,em_manutencao:0,aguardando_peca:0,aguardando_entrega:0,pecas_recebidas:0,liberado:0};tags.forEach(t=>cont[equip[t].status]++);
   const at=ativos(),maior=at.filter(e=>e.status==='aguardando').sort((a,b)=>a.desde-b.desde)[0];
-  const ks=[{l:'Disponíveis agora',w:2.1},{l:'Aguardando atendimento',c:C.wait,v:cont.aguardando},{l:'Em manutenção',c:C.maint,v:cont.em_manutencao},{l:'Peças solicitadas',c:C.peca,v:cont.aguardando_peca},{l:'Liberados p/ operação',c:C.lib,v:cont.liberado},{l:'Maior espera sem atendimento',w:1.6}];
+  const ks=[{l:'Disponíveis agora',w:2.1},{l:'Aguardando atendimento',c:C.wait,v:cont.aguardando},{l:'Em manutenção',c:C.maint,v:cont.em_manutencao},{l:'Peças',c:C.peca,v:cont.aguardando_peca+cont.aguardando_entrega+cont.pecas_recebidas},{l:'Liberados p/ operação',c:C.lib,v:cont.liberado},{l:'Maior espera sem atendimento',w:1.6}];
   const tw=ks.reduce((s,k)=>s+(k.w||1),0),kW=W-52-10*(ks.length-1);let kx=26;
   ks.forEach((k,i)=>{const w=kW*(k.w||1)/tw,y=96,h=94;ctx.fillStyle=C.panel;rr(ctx,kx,y,w,h,10);ctx.fill();ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.stroke();
     ctx.font=`600 11px ${FB}`;esp('.6px');let lx=kx+14;if(k.c){ctx.fillStyle=k.c;rr(ctx,lx,y+15,9,9,2);ctx.fill();lx+=16;}ctx.fillStyle=C.muted;ctx.fillText(corta(ctx,tt(k.l).toUpperCase(),w-40),lx,y+24);esp();
@@ -1320,7 +1333,7 @@ async function desenharRetrato(escala){
     ctx.textAlign='right';ctx.fillStyle=C.text;ctx.font=`600 17px ${FM}`;ctx.fillText(dur(now-e.desde),QX+QW-24,y+26);ctx.textAlign='left';
     ctx.fillStyle=C.muted;ctx.font=`500 14px ${FB}`;ctx.fillText(corta(ctx,tt(e.motivo)+(e.obs?' · '+e.obs:'')+(e.tecnico&&e.status!=='aguardando'?' · '+e.tecnico:''),QW-50),QX+26,y+49);});
   if(fila.length>maxL){ctx.fillStyle=C.muted;ctx.font=`500 13px ${FB}`;ctx.fillText('+'+(fila.length-maxL)+(LANG==='en'?' more':' outros'),QX+14,QY+QH-40);}
-  let lx=QX+14,ly=QY+QH-44;ctx.font=`500 12px ${FB}`;[['operando','Operando'],['aguardando','Aguardando'],['em_manutencao','Em manutenção'],['aguardando_peca','Peças solic.'],['liberado','Liberado']].forEach(([s,l])=>{const tx=tt(l),lw=ctx.measureText(tx).width+30;if(lx+lw>QX+QW-10){lx=QX+14;ly+=20;}ctx.fillStyle=corSt(C,s);rr(ctx,lx,ly,10,10,2);ctx.fill();ctx.fillStyle=C.muted;ctx.fillText(tx,lx+15,ly+9);lx+=lw;});
+  let lx=QX+14,ly=QY+QH-44;ctx.font=`500 12px ${FB}`;[['operando','Operando'],['aguardando','Aguardando'],['em_manutencao','Em manutenção'],['aguardando_peca','Peças solic.'],['aguardando_entrega','Aguard. peças'],['pecas_recebidas','Peças receb.'],['liberado','Liberado']].forEach(([s,l])=>{const tx=tt(l),lw=ctx.measureText(tx).width+30;if(lx+lw>QX+QW-10){lx=QX+14;ly+=20;}ctx.fillStyle=corSt(C,s);rr(ctx,lx,ly,10,10,2);ctx.fill();ctx.fillStyle=C.muted;ctx.fillText(tx,lx+15,ly+9);lx+=lw;});
   /* rodapé */
   const u=usuarioAtual();ctx.fillStyle=C.faint;ctx.font=`500 12px ${FB}`;ctx.fillText((LANG==='en'?'Downtime Board · generated by ':'Quadro de Paradas · gerado por ')+(u?u.curto:'—')+' · '+d.toLocaleString(LANG==='en'?'en-US':'pt-BR'),26,H-12);
   return cv;

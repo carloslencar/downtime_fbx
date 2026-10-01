@@ -82,7 +82,7 @@
   setInterval(() => {
     if (!cfg.on || !cfg.lembrete || !(cfg.min > 0) || typeof equip === 'undefined') return;
     const limite = cfg.min * 60000, agora = Date.now();
-    const atrasado = Object.values(equip).some(e => e.ativo !== false && e.status === 'aguardando' && agora - (e.desde || agora) > limite);
+    const atrasado = Object.values(equip).some(e => e.ativo !== false && (e.status === 'aguardando' || e.status === 'pecas_recebidas') && agora - (e.desde || agora) > limite);
     if (atrasado && agora - ultimoLembrete >= limite) { ultimoLembrete = agora; tocar('lembrete'); }
     if (!atrasado) ultimoLembrete = 0;
   }, 30000);
