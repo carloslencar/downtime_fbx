@@ -44,8 +44,9 @@ function situacaoItem(i) {
 /* ---------- gravação ---------- */
 async function gravarItem(item, patch) {
   const doc = { ...item, ...patch, atualizadoEm: Date.now(), atualizadoPor: quemSou() };
+  // A versão gravada volta do servidor (com TAG e nº da parada) pelo canal de tempo real;
+  // não sobrescrever com a cópia local, que não tem esses campos.
   await db.doc('pecas/' + item.id).set(doc);
-  pecas[item.id] = doc;
 }
 async function criarItens(pid, linhas) {
   const now = Date.now(), base = now.toString(36);
@@ -148,7 +149,8 @@ function gruposPecas() {
   return Object.entries(g).map(([pid, itens]) => {
     itens.sort((a, b) => (a.criadoEm || 0) - (b.criadoEm || 0) || (a.id < b.id ? -1 : 1));
     const ativos = itens.filter(i => !i.cancelada), pend = ativos.filter(i => !i.chegou);
-    const par = paradas[pid] || null, tag = itens[0].tag, eq = equip[tag];
+    const par = paradas[pid] || null;
+    const tag = (itens.find(i => i.tag) || {}).tag || (par && par.tag) || String(pid).split('_')[0], eq = equip[tag];
     const daParada = eq && eq.paradaId === pid;
     return { pid, itens, ativos, pend, par, tag, eq, daParada, numero: (par && par.numero) || itens[0].numero, ini: Math.min(...itens.map(i => i.criadoEm || Infinity)) };
   }).filter(x => {
