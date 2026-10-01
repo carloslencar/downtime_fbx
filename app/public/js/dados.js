@@ -20,6 +20,6 @@ const FROTA=[
   {id:'cc',nome:'Comboios',prefixo:'FT',n:2,tipo:'comboio',modelo:'Comboio diesel 15 m³',area:'Posto de abastecimento'}
 ];
 const MOTIVOS=['Mecânica','Hidráulica','Elétrica','Pneu / rodante','Preventiva','Avaria / acidente','Outro'];
-const ACAO={aguardando:'Parada aberta',em_manutencao:'Atendimento iniciado',aguardando_peca:'Aguardando peça',liberado:'Liberado pela manutenção',operando:'Recebido pela operação'};
+const ACAO={aguardando:'Parada aberta',em_manutencao:'Atendimento iniciado',aguardando_peca:'Peças solicitadas',liberado:'Liberado pela manutenção',operando:'Recebido pela operação'};
 function pad2(n){return String(n).padStart(2,'0')}
 function frotasPadrao(){return FROTA.map(f=>({id:f.id,nome:f.nome,prefixo:f.prefixo,tipo:f.tipo,porte:f.porte||''}))}

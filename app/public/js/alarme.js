@@ -3,13 +3,14 @@
  * Sons gerados pelo próprio navegador (Web Audio), sem arquivos nem internet.
  * - Nova parada: três bipes fortes.
  * - Equipamento liberado: carrilhão curto subindo.
+ * - Peças solicitadas/adicionadas (planejamento) e peças recebidas (oficina).
  * - Lembrete: dois bipes, repetidos enquanto houver equipamento esperando atendimento além do limite.
  * Chamado por js/app.js: alarmeEvento(evento) a cada evento novo do painel.
  */
 (function () {
   'use strict';
   const CHAVE = 'qp-alarme';
-  const PADRAO = { on: false, nova: true, lib: true, lembrete: true, min: 15, vol: 80 };
+  const PADRAO = { on: false, nova: true, lib: true, pecas: true, chegada: true, lembrete: true, min: 15, vol: 80 };
   let cfg = { ...PADRAO };
   try { cfg = { ...PADRAO, ...(JSON.parse(localStorage.getItem(CHAVE) || '{}')) }; } catch (e) {}
   function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(cfg)); } catch (e) {} }
@@ -40,6 +41,8 @@
   const SONS = {
     nova() { for (let r = 0; r < 2; r++) for (let i = 0; i < 3; i++) tom(i % 2 ? 660 : 880, r * 1.1 + i * 0.26, 0.2, 'square', 0.35); },
     liberado() { [523, 659, 784].forEach((f, i) => tom(f, i * 0.18, 0.5, 'sine', 0.6)); },
+    pecas() { [0, 0.5].forEach(o => { tom(587, o, 0.16, 'square', 0.3); tom(880, o + 0.18, 0.22, 'square', 0.3); }); },
+    chegada() { tom(784, 0, 0.3, 'sine', 0.6); tom(1047, 0.2, 0.55, 'sine', 0.6); },
     lembrete() { tom(740, 0, 0.22, 'triangle', 0.6); tom(740, 0.34, 0.22, 'triangle', 0.6); }
   };
   function tocar(nome) {
@@ -70,6 +73,8 @@
     if (!cfg.on || !ev || Date.now() - ev.t > 120000) return; // ignora eventos antigos (ex.: ao reconectar)
     if (ev.status === 'aguardando' && ev.acao === 'Parada aberta' && cfg.nova) tocar('nova');
     else if (ev.status === 'liberado' && cfg.lib) tocar('liberado');
+    else if ((ev.acao === 'Peças solicitadas' || ev.acao === 'Peças adicionadas') && cfg.pecas) tocar('pecas');
+    else if (ev.acao === 'Peças recebidas' && cfg.chegada) tocar('chegada');
   };
 
   // Lembrete: repete a cada "min" minutos enquanto houver equipamento aguardando além do limite.
@@ -89,6 +94,8 @@
     $('#c-som-t').textContent = cfg.on ? 'Ligado' : 'Desligado';
     $('#c-som-nova').checked = cfg.nova;
     $('#c-som-lib').checked = cfg.lib;
+    $('#c-som-pecas').checked = cfg.pecas;
+    $('#c-som-cheg').checked = cfg.chegada;
     $('#c-som-lemb').checked = cfg.lembrete;
     if (document.activeElement !== $('#c-som-min')) $('#c-som-min').value = cfg.min;
     $('#c-som-vol').value = cfg.vol;
@@ -104,6 +111,8 @@
   $('#c-som').addEventListener('change', e => mudar({ on: e.target.checked }, e.target.checked ? 'nova' : null));
   $('#c-som-nova').addEventListener('change', e => mudar({ nova: e.target.checked }, e.target.checked ? 'nova' : null));
   $('#c-som-lib').addEventListener('change', e => mudar({ lib: e.target.checked }, e.target.checked ? 'liberado' : null));
+  $('#c-som-pecas').addEventListener('change', e => mudar({ pecas: e.target.checked }, e.target.checked ? 'pecas' : null));
+  $('#c-som-cheg').addEventListener('change', e => mudar({ chegada: e.target.checked }, e.target.checked ? 'chegada' : null));
   $('#c-som-lemb').addEventListener('change', e => mudar({ lembrete: e.target.checked }, e.target.checked ? 'lembrete' : null));
   $('#c-som-min').addEventListener('change', e => { const v = Math.round(Number(e.target.value)); mudar({ min: v >= 1 && v <= 240 ? v : cfg.min }); });
   $('#c-som-vol').addEventListener('change', e => mudar({ vol: Math.max(5, Math.min(100, Number(e.target.value) || 80)) }, 'nova'));

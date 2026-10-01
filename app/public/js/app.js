@@ -3,7 +3,7 @@ const ST={
   operando:{rot:'Operando',curto:'Operando'},
   aguardando:{rot:'Aguardando manutenção',curto:'Aguardando'},
   em_manutencao:{rot:'Em manutenção',curto:'Em manutenção'},
-  aguardando_peca:{rot:'Aguardando peça',curto:'Aguard. peça'},
+  aguardando_peca:{rot:'Peças solicitadas',curto:'Peças solic.'},
   liberado:{rot:'Liberado · aguardando operação',curto:'Liberado'}
 };
 const COR={operando:'s-ok-ico',aguardando:'s-wait',em_manutencao:'s-maint',aguardando_peca:'s-peca',liberado:'s-lib'};
@@ -127,7 +127,7 @@ function render(){
   $('#k-espera').innerHTML=esp?`${esc(esp.tag)}<em data-desde="${esp.desde}"></em>`:'<span style="color:var(--faint)">Nenhuma</span>';
   const fila=at.filter(e=>e.status!=='operando').sort((a,b)=>(ORDEM_FILA[a.status]-ORDEM_FILA[b.status])||(a.desde-b.desde));
   $('#fila-n').textContent=fila.length?fila.length+' parados':'';
-  $('#fila').innerHTML=fila.length?fila.map(e=>`<button type="button" class="fr" data-c="${e.status}" data-tag="${esc(e.tag)}"><i></i><span style="min-width:0"><span><b>${esc(e.tag)}</b><span class="fr-s">${ST[e.status].curto}</span></span><p>${esc(e.motivo)}${e.obs?' · '+esc(e.obs):''}${e.tecnico&&e.status!=='aguardando'?' · '+esc(e.tecnico):''}</p></span><span class="tm" data-desde="${e.desde}"></span></button>`).join(''):'<p class="vazio">Toda a frota está operando.</p>';
+  $('#fila').innerHTML=fila.length?fila.map(e=>`<button type="button" class="fr" data-c="${e.status}" data-tag="${esc(e.tag)}"><i></i><span style="min-width:0"><span><b>${esc(e.tag)}</b><span class="fr-s">${ST[e.status].curto}</span></span><p>${esc(e.motivo)}${e.status==='aguardando_peca'&&resumoPecas(e.paradaId).total?' · '+esc(textoResumoPecas(e.paradaId)):(e.obs?' · '+esc(e.obs):'')}${e.tecnico&&e.status!=='aguardando'?' · '+esc(e.tecnico):''}</p></span><span class="tm" data-desde="${e.desde}"></span></button>`).join(''):'<p class="vazio">Toda a frota está operando.</p>';
   $('#evs').innerHTML=eventos.length?eventos.slice(0,document.body.classList.contains('ajuste')?40:(qrFixo?5:9)).map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${hhmm(v.t)}</time><span><b>${esc(v.tag)}</b><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join(''):'<p class="vazio">Sem eventos ainda.</p>';
   requestAnimationFrame(marcarMais);
   if(aberto){if(!equip[aberto.tag])fechar();else if(equip[aberto.tag].status!==aberto.st)renderModal();}
@@ -163,8 +163,8 @@ function toastErro(msg){toast({tag:'!',status:'aguardando',acao:msg,por:'Tente d
 
 let paradas={};
 const JANELA_DESFAZER=10*60000;
-const NOME_ACAO={abrir:'Abertura da parada',assumir:'Início do atendimento',peca:'Aguardando peça',retomar:'Retomada do atendimento',liberar:'Liberação',receber:'Recebimento pela operação'};
-const PAPEL_NOME={operacao:'Operação',manutencao:'Manutenção',admin:'Administrador'};
+const NOME_ACAO={abrir:'Abertura da parada',assumir:'Início do atendimento',pecas:'Solicitação de peças',pecas_ok:'Chegada das peças',retomar:'Retomada do atendimento',liberar:'Liberação',receber:'Recebimento pela operação'};
+const PAPEL_NOME={operacao:'Operação',manutencao:'Manutenção',planejador:'Planejamento',admin:'Administrador'};
 function clone(o){return o==null?o:JSON.parse(JSON.stringify(o))}
 function semAnterior(e){const c={...e};delete c.anterior;delete c.ultAcao;return c;}
 function toLocal(ms){const d=new Date(ms);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());}
@@ -216,7 +216,6 @@ function quemManut(e){const u=usuarioAtual();return u&&u.perfil==='manutencao'?u
 const ACOES={
   abrir:(e,d)=>aplicar('abrir',e.tag,{status:'aguardando',motivo:d.motivo,obs:d.obs||'',tecnico:'',inicioParada:Date.now(),...horPatch(d)},{por:'Operação'+nomeSessao(),detalhe:d.motivo+(d.obs?' · '+d.obs:'')+horTxt(d),hor:d.hor??null}),
   assumir:(e,d)=>aplicar('assumir',e.tag,{status:'em_manutencao',tecnico:d.tecnico},{por:'Manutenção · '+d.tecnico,detalhe:e.motivo}),
-  peca:(e,d)=>aplicar('peca',e.tag,{status:'aguardando_peca',obs:d.obs||e.obs},{por:'Manutenção · '+quemManut(e),detalhe:d.obs||e.obs}),
   retomar:(e)=>aplicar('retomar',e.tag,{status:'em_manutencao'},{acao:'Atendimento retomado',por:'Manutenção · '+quemManut(e),detalhe:e.motivo}),
   liberar:(e,d)=>aplicar('liberar',e.tag,{status:'liberado',obs:d.obs||e.obs,...horPatch(d)},{por:'Manutenção · '+quemManut(e),detalhe:(d.obs||e.motivo)+horTxt(d),hor:d.hor??null}),
   receber:(e)=>aplicar('receber',e.tag,{status:'operando',motivo:'',obs:'',tecnico:'',inicioParada:0},{por:'Operação'+nomeSessao(),detalhe:'Parado por '+dur(Date.now()-(e.inicioParada||e.desde))})
@@ -243,7 +242,7 @@ async function desfazer(e){
   return gravar(e.tag,volta,par,evento);
 }
 
-const MSG_OK={abrir:'Parada aberta. A manutenção já vê este equipamento na fila.',assumir:'Atendimento assumido. Quando terminar o serviço, libere por aqui.',peca:'Marcado como aguardando peça.',retomar:'Atendimento retomado.',liberar:'Equipamento liberado. Falta a operação confirmar o recebimento.',receber:'Recebimento confirmado. Equipamento de volta à operação.',desfazer:'Lançamento desfeito. O equipamento voltou para a etapa anterior.',corrigir:'Correção salva e registrada no histórico.',cancelar:'Parada cancelada e registrada no histórico.'};
+const MSG_OK={abrir:'Parada aberta. A manutenção já vê este equipamento na fila.',assumir:'Atendimento assumido. Quando terminar o serviço, libere por aqui.',pecas:'Peças solicitadas. O planejamento já recebeu a lista e vai informar a ordem de compra.',retomar:'Atendimento retomado.',liberar:'Equipamento liberado. Falta a operação confirmar o recebimento.',receber:'Recebimento confirmado. Equipamento de volta à operação.',desfazer:'Lançamento desfeito. O equipamento voltou para a etapa anterior.',corrigir:'Correção salva e registrada no histórico.',cancelar:'Parada cancelada e registrada no histórico.'};
 function abrir(tag){aberto={tag,st:null,msg:null,modo:null,confDesf:false,err:''};$('#modal').hidden=false;renderModal();}
 function fechar(){aberto=null;$('#modal').hidden=true;}
 
@@ -312,8 +311,10 @@ function supervisorHtml(e){
 
 function acoesHtml(e){
   if(!papel)return `<p class="nota">Entre com seu usuário para registrar ações neste equipamento.</p><div class="acoes"><button type="button" class="go" style="--k:var(--glass)" data-acao="login">Entrar</button></div>`;
+  if(aberto.modo==='pecas')return formPecasHtml(e);
   if(aberto.modo)return supervisorHtml(e);
-  if(papel==='admin')return '<p class="nota">Como administrador, você corrige lançamentos. Abrir, atender e liberar ficam com a operação e a manutenção.</p>'+supervisorHtml(e);
+  if(papel==='admin')return listaPecasModal(e)+'<p class="nota">Como administrador, você corrige lançamentos. Abrir, atender e liberar ficam com a operação e a manutenção.</p>'+supervisorHtml(e);
+  if(papel==='planejador')return acoesPlanejamento(e);
   return acoesPapel(e)+supervisorHtml(e);
 }
 function acoesPapel(e){
@@ -321,14 +322,16 @@ function acoesPapel(e){
   if(papel==='operacao'){
     if(e.status==='operando')return `<div class="fs"><span class="lb">Motivo da parada</span><div class="chips" id="motivos">${MOTIVOS.map(m=>`<button type="button" aria-pressed="false" data-m="${esc(m)}">${esc(m)}</button>`).join('')}</div><p class="erro" id="err" hidden>Escolha um motivo antes de abrir a parada.</p></div><div class="fs"><label for="obs">Observação</label><input type="text" id="obs" maxlength="80" placeholder="Pneu dianteiro direito cortado"></div>${horCampo(e)}<div class="acoes"><button type="button" class="go" style="--k:var(--s-wait)" data-acao="abrir">Colocar em manutenção</button></div>`;
     if(e.status==='liberado')return `<div class="acoes"><button type="button" class="go" style="--k:var(--s-ok)" data-acao="receber">Confirmar recebimento</button></div>`;
-    return nota('Este equipamento está com a manutenção. Só a manutenção pode liberá-lo.');
+    return listaPecasModal(e)+nota('Este equipamento está com a manutenção. Só a manutenção pode liberá-lo.');
   }
   if(e.status==='operando')return nota('Paradas são abertas pela operação.');
   if(e.status==='liberado')return nota('Liberado. Aguardando a operação confirmar o recebimento.');
   if(e.status==='aguardando')return `<div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos().map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
   const obs=`<div class="fs"><label for="obs">${e.status==='em_manutencao'?'Nota (nº do pedido ou serviço feito)':'Nota da liberação'}</label><input type="text" id="obs" maxlength="80" placeholder="${e.status==='em_manutencao'?'Pedido 4502 · filtro hidráulico':'Serviço concluído, testado em campo'}"></div>`;
-  if(e.status==='em_manutencao')return obs+horCampo(e)+`<div class="acoes"><button type="button" class="go sec" style="--k:var(--s-peca)" data-acao="peca">Aguardando peça</button><button type="button" class="go" style="--k:var(--s-lib)" data-acao="liberar">Liberar equipamento</button></div>`;
-  return obs+horCampo(e)+`<div class="acoes"><button type="button" class="go sec" style="--k:var(--s-maint)" data-acao="retomar">Retomar atendimento</button><button type="button" class="go" style="--k:var(--s-lib)" data-acao="liberar">Liberar equipamento</button></div>`;
+  if(e.status==='em_manutencao')return listaPecasModal(e)+obs+horCampo(e)+`<div class="acoes"><button type="button" class="go sec" style="--k:var(--s-peca)" data-acao="modoPecas">Solicitar peças</button><button type="button" class="go" style="--k:var(--s-lib)" data-acao="liberar">Liberar equipamento</button></div>`;
+  // Peças solicitadas: o status volta sozinho para "em manutenção" quando todas as peças chegam.
+  const semPendencia=!resumoPecas(e.paradaId).pendentes;
+  return listaPecasModal(e)+obs+horCampo(e)+`<div class="acoes"><button type="button" class="go sec" style="--k:var(--s-peca)" data-acao="modoPecas">Adicionar peças</button>${semPendencia?`<button type="button" class="go sec" style="--k:var(--s-maint)" data-acao="retomar">Retomar atendimento</button>`:''}<button type="button" class="go" style="--k:var(--s-lib)" data-acao="liberar">Liberar equipamento</button></div>`;
 }
 
 function erroCorr(msg){aberto.err=msg;const keep=lerCorr();renderModal();restaurarCorr(keep);}
@@ -405,6 +408,7 @@ $('#dlg').addEventListener('click',async ev=>{
   const modos={modoCorr:'corrigir',modoCorrF:'corrigirF',modoCancel:'cancelar',modoCancelF:'cancelarF'};
   if(modos[a]){aberto.modo=modos[a];aberto.err='';aberto.msg=null;renderModal();const f=$('#dlg .corr input');if(f)f.focus();return;}
   if(a==='voltar'){aberto.modo=null;aberto.err='';renderModal();return;}
+  if(await cliquePecasModal(a,t,e))return;
   if(a==='login'){const tg=aberto.tag;fechar();abrirLogin(tg);return;}
   let ok,msgKey=a;
   if(a==='desfazer'){
@@ -437,10 +441,11 @@ $('#fila').addEventListener('click',e=>{const b=e.target.closest('[data-tag]');i
 /* ---------- Usuários e sessão ---------- */
 const PERFIS={
   operacao:{nome:'Operação',desc:'Abre paradas e confirma o recebimento. Também corrige lançamentos, cadastra equipamentos e usuários.'},
-  manutencao:{nome:'Manutenção',desc:'Assume atendimentos, marca aguardando peça e libera. Também corrige lançamentos, cadastra equipamentos e usuários.'},
+  manutencao:{nome:'Manutenção',desc:'Assume atendimentos, solicita peças e libera. Também corrige lançamentos, cadastra equipamentos e usuários.'},
+  planejador:{nome:'Planejamento',desc:'Recebe as solicitações de peças da manutenção, informa a ordem de compra e marca a chegada das peças.'},
   admin:{nome:'Administrador',desc:'Corrige lançamentos, cadastra equipamentos e usuários, e acessa os dados para exportar ao Excel e gerar relatórios.'}
 };
-const ORDEM_PERFIL=['operacao','manutencao','admin'];
+const ORDEM_PERFIL=['operacao','manutencao','planejador','admin'];
 const TURNOS={A:'Turno A',B:'Turno B',ADM:'Administrativo'};
 let usuarios={};
 let sessaoId=null,ultimaAtividade=Date.now(),loginSel=null,pinDig='',pinErros=0,pinBloqueio=0,pinVerificando=false,loginBusca='',loginDepois=null;
@@ -461,7 +466,7 @@ function perfilAtual(){const u=usuarioAtual();return u?u.perfil:null;}
 function papelDe(p){return PERFIS[p]?p:null;}
 function nomeSessao(){const u=usuarioAtual();return u?' · '+u.curto:'';}
 function temUsuarios(){return Object.values(usuarios).some(u=>PERFIS[u.perfil]&&u.ativo!==false);}
-function podeGerir(){return !!papelDe(perfilAtual());}
+function podeGerir(){const p=papelDe(perfilAtual());return !!p&&p!=='planejador';}
 function podeUsuarios(){return podeGerir()||!temUsuarios();}
 function tecnicos(){const l=Object.values(usuarios).filter(u=>u.perfil==='manutencao'&&u.ativo!==false).map(u=>u.curto).sort((a,b)=>a.localeCompare(b));return l.length?l:[(usuarioAtual()||{}).curto].filter(Boolean);}
 function iniciais(n){const p=String(n||'?').trim().split(/\s+/);return ((p[0]||'?')[0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
@@ -473,6 +478,7 @@ function aplicarSessao(){
   papel=papelDe(perfilAtual());
   renderSessao();
   $('#nav-dados').hidden=!ehAdmin();
+  $('#nav-pecas').hidden=!usuarioAtual();
   if(vista==='cadastro'&&fd&&$('#f-area')){lerForm();renderForm();}
   if(aberto){aberto.modo=null;aberto.err='';aberto.confDesf=false;renderModal();}
   if(vista)setVista(vista);
@@ -1040,8 +1046,8 @@ $('#c-link').addEventListener('change',e=>{
 });
 
 /* ---------- Dados e exportação (administrador) ---------- */
-const TABELAS=['Paradas','Etapas','Correcoes','Equipamentos','Usuarios'];
-const NOME_TAB={Paradas:'Paradas',Etapas:'Etapas',Correcoes:'Correções',Equipamentos:'Equipamentos',Usuarios:'Usuários'};
+const TABELAS=['Paradas','Etapas','Correcoes','Pecas','Equipamentos','Usuarios'];
+const NOME_TAB={Paradas:'Paradas',Etapas:'Etapas',Correcoes:'Correções',Pecas:'Peças',Equipamentos:'Equipamentos',Usuarios:'Usuários'};
 let dDe='',dAte='',dTab='Paradas',dCache=null,dCarregando=false,pqInfo=null,pqTab='paradas',pqConfChave=false;
 function ehAdmin(){return perfilAtual()==='admin';}
 function podeCriarAdmin(){return ehAdmin()||!temUsuarios();}
@@ -1060,13 +1066,16 @@ function montarTabelas(lista){
   const ps=lista.filter(p=>p.inicio>=de&&p.inicio<=ate).sort((a,b)=>b.inicio-a.inicio);
   const eqInfo=tag=>{const e=equip[tag]||{};return {frota:(frotaDe(e.grupo)||{}).nome||'',tipo:(TIPO[e.tipo]||{}).nome||''};};
   const T={};
-  T.Paradas={cols:['ID','TAG','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções'],tipos:['s','s','s','s','s','s','d','d','n','s','s','n','n','n'],
-    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.tag,i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length];})};
+  T.Paradas={cols:['ID','Nº','TAG','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções'],tipos:['s','n','s','s','s','s','s','d','d','n','s','s','n','n','n'],
+    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.numero??null,p.tag,i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length];})};
   const et=[];
   for(const p of ps){const es=(p.etapas||[]).slice().sort((a,b)=>a.t-b.t);es.forEach((s,k)=>{if(s.status==='operando')return;const fim=k+1<es.length?es[k+1].t:(p.fim||null);et.push([p.id,p.tag,(ST[s.status]||{rot:s.status}).rot,s.t,fim,horas((fim||now)-s.t),s.por||'',p.cancelada?'Sim':'Não']);});}
   T.Etapas={cols:['Parada','TAG','Etapa','Início','Fim','Duração (h)','Registrado por','Parada cancelada'],tipos:['s','s','s','d','d','n','s','s'],rows:et};
   const co=[];for(const p of ps)for(const c of p.correcoes||[])co.push([p.id,p.tag,c.t,c.por||'',c.campo||'',String(c.de??''),String(c.para??''),c.just||'']);
   T.Correcoes={cols:['Parada','TAG','Data','Por','Campo','De','Para','Justificativa'],tipos:['s','s','d','s','s','s','s','s'],rows:co.sort((a,b)=>b[2]-a[2])};
+  const pk=(typeof pecas==='object'?Object.values(pecas):[]).filter(i=>(i.criadoEm||0)>=de&&(i.criadoEm||0)<=ate).sort((a,b)=>(b.criadoEm||0)-(a.criadoEm||0));
+  T.Pecas={cols:['Parada nº','TAG','Peça','Código','Quantidade','Solicitada em','Solicitada por','Ordem de compra','Chegou em','Recebida por','Situação'],tipos:['n','s','s','s','n','d','s','s','d','s','s'],
+    rows:pk.map(i=>[i.numero??null,i.tag||'',i.descricao||'',i.codigo||'',i.qtd??null,i.criadoEm||null,i.criadoPor||'',i.oc||'',i.chegou?i.chegouEm||null:null,i.chegouPor||'',i.cancelada?'Cancelada':i.chegou?'Chegou':i.oc?'Com ordem de compra':'Aguardando ordem de compra'])};
   T.Equipamentos={cols:['TAG','Frota','Tipo','Porte','Modelo','Área','Ano','Horímetro','Situação atual','No painel'],tipos:['s','s','s','s','s','s','n','n','s','s'],
     rows:Object.values(equip).sort((a,b)=>cmpTag(a.tag,b.tag)).map(e=>{const i=eqInfo(e.tag);return [e.tag,i.frota,i.tipo,e.porte||'',e.modelo||'',e.area||'',e.ano===''?null:e.ano??null,e.horimetro===''?null:e.horimetro??null,(ST[e.status]||{rot:e.status}).rot,e.ativo===false?'Não':'Sim'];})};
   T.Usuarios={cols:['Matrícula','Nome','Nome curto','Perfil','Ativo'],tipos:['s','s','s','s','s'],
@@ -1142,7 +1151,7 @@ async function renderDados(recarregar){
   $('#d-de').value=dDe;$('#d-ate').value=dAte;
   if(recarregar||!dCache){dCarregando=true;$('#d-resumo').innerHTML='<p class="vazio">Carregando dados…</p>';dCache=await carregarParadas();dCarregando=false;}
   const T=montarTabelas(dCache);
-  const ab=T.Paradas.rows.filter(r=>r[9]==='Em andamento').length,enc=T.Paradas.rows.filter(r=>r[9]==='Encerrada'),mttr=enc.length?(enc.reduce((s,r)=>s+r[8],0)/enc.length):null;
+  const ab=T.Paradas.rows.filter(r=>r[10]==='Em andamento').length,enc=T.Paradas.rows.filter(r=>r[10]==='Encerrada'),mttr=enc.length?(enc.reduce((s,r)=>s+r[9],0)/enc.length):null;
   $('#d-resumo').innerHTML=[['Paradas no período',T.Paradas.rows.length],['Em andamento',ab],['Tempo médio de parada',mttr==null?'—':String(Math.round(mttr*10)/10).replace('.',LANG==='en'?'.':',')+' h'],['Etapas',T.Etapas.rows.length],['Correções',T.Correcoes.rows.length],['Equipamentos',T.Equipamentos.rows.length]]
     .map(([l,v])=>`<div class="k"><div class="k-l">${esc(l)}</div><div class="k-v">${esc(v)}</div></div>`).join('');
   $('#d-tabs').innerHTML=TABELAS.map(n=>`<button type="button" data-dt="${n}" aria-pressed="${dTab===n}">${esc(NOME_TAB[n])} <span>${T[n].rows.length}</span></button>`).join('');
@@ -1233,7 +1242,7 @@ async function desenharRetrato(escala){
   /* indicadores */
   const cont={operando:0,aguardando:0,em_manutencao:0,aguardando_peca:0,liberado:0};tags.forEach(t=>cont[equip[t].status]++);
   const at=ativos(),maior=at.filter(e=>e.status==='aguardando').sort((a,b)=>a.desde-b.desde)[0];
-  const ks=[{l:'Disponíveis agora',w:2.1},{l:'Aguardando atendimento',c:C.wait,v:cont.aguardando},{l:'Em manutenção',c:C.maint,v:cont.em_manutencao},{l:'Aguardando peça',c:C.peca,v:cont.aguardando_peca},{l:'Liberados p/ operação',c:C.lib,v:cont.liberado},{l:'Maior espera sem atendimento',w:1.6}];
+  const ks=[{l:'Disponíveis agora',w:2.1},{l:'Aguardando atendimento',c:C.wait,v:cont.aguardando},{l:'Em manutenção',c:C.maint,v:cont.em_manutencao},{l:'Peças solicitadas',c:C.peca,v:cont.aguardando_peca},{l:'Liberados p/ operação',c:C.lib,v:cont.liberado},{l:'Maior espera sem atendimento',w:1.6}];
   const tw=ks.reduce((s,k)=>s+(k.w||1),0),kW=W-52-10*(ks.length-1);let kx=26;
   ks.forEach((k,i)=>{const w=kW*(k.w||1)/tw,y=96,h=94;ctx.fillStyle=C.panel;rr(ctx,kx,y,w,h,10);ctx.fill();ctx.strokeStyle=C.line;ctx.lineWidth=1;ctx.stroke();
     ctx.font=`600 11px ${FB}`;esp('.6px');let lx=kx+14;if(k.c){ctx.fillStyle=k.c;rr(ctx,lx,y+15,9,9,2);ctx.fill();lx+=16;}ctx.fillStyle=C.muted;ctx.fillText(corta(ctx,tt(k.l).toUpperCase(),w-40),lx,y+24);esp();
@@ -1271,7 +1280,7 @@ async function desenharRetrato(escala){
     ctx.textAlign='right';ctx.fillStyle=C.text;ctx.font=`600 17px ${FM}`;ctx.fillText(dur(now-e.desde),QX+QW-24,y+26);ctx.textAlign='left';
     ctx.fillStyle=C.muted;ctx.font=`500 14px ${FB}`;ctx.fillText(corta(ctx,tt(e.motivo)+(e.obs?' · '+e.obs:'')+(e.tecnico&&e.status!=='aguardando'?' · '+e.tecnico:''),QW-50),QX+26,y+49);});
   if(fila.length>maxL){ctx.fillStyle=C.muted;ctx.font=`500 13px ${FB}`;ctx.fillText('+'+(fila.length-maxL)+(LANG==='en'?' more':' outros'),QX+14,QY+QH-40);}
-  let lx=QX+14,ly=QY+QH-44;ctx.font=`500 12px ${FB}`;[['operando','Operando'],['aguardando','Aguardando'],['em_manutencao','Em manutenção'],['aguardando_peca','Aguard. peça'],['liberado','Liberado']].forEach(([s,l])=>{const tx=tt(l),lw=ctx.measureText(tx).width+30;if(lx+lw>QX+QW-10){lx=QX+14;ly+=20;}ctx.fillStyle=corSt(C,s);rr(ctx,lx,ly,10,10,2);ctx.fill();ctx.fillStyle=C.muted;ctx.fillText(tx,lx+15,ly+9);lx+=lw;});
+  let lx=QX+14,ly=QY+QH-44;ctx.font=`500 12px ${FB}`;[['operando','Operando'],['aguardando','Aguardando'],['em_manutencao','Em manutenção'],['aguardando_peca','Peças solic.'],['liberado','Liberado']].forEach(([s,l])=>{const tx=tt(l),lw=ctx.measureText(tx).width+30;if(lx+lw>QX+QW-10){lx=QX+14;ly+=20;}ctx.fillStyle=corSt(C,s);rr(ctx,lx,ly,10,10,2);ctx.fill();ctx.fillStyle=C.muted;ctx.fillText(tx,lx+15,ly+9);lx+=lw;});
   /* rodapé */
   const u=usuarioAtual();ctx.fillStyle=C.faint;ctx.font=`500 12px ${FB}`;ctx.fillText((LANG==='en'?'Downtime Board · generated by ':'Quadro de Paradas · gerado por ')+(u?u.curto:'—')+' · '+d.toLocaleString(LANG==='en'?'en-US':'pt-BR'),26,H-12);
   return cv;
@@ -1354,26 +1363,27 @@ $('#cad-form').addEventListener('click',ev=>{if(ev.target.closest('#f-areas-ger'
 
 function setVista(v){
   vista=v;
-  const bloq=(v==='cadastro'&&!podeGerir())||(v==='usuarios'&&!podeUsuarios())||(v==='dados'&&!ehAdmin());
-  $('#v-painel').hidden=v!=='painel';$('#v-cad').hidden=v!=='cadastro'||bloq;$('#v-cfg').hidden=v!=='config';$('#v-usr').hidden=v!=='usuarios'||bloq;$('#v-dados').hidden=v!=='dados'||bloq;$('#v-lock').hidden=!bloq;
+  const bloq=(v==='cadastro'&&!podeGerir())||(v==='usuarios'&&!podeUsuarios())||(v==='dados'&&!ehAdmin())||(v==='pecas'&&!usuarioAtual());
+  $('#v-painel').hidden=v!=='painel';$('#v-cad').hidden=v!=='cadastro'||bloq;$('#v-cfg').hidden=v!=='config';$('#v-usr').hidden=v!=='usuarios'||bloq;$('#v-dados').hidden=v!=='dados'||bloq;$('#v-pecas').hidden=v!=='pecas'||bloq;$('#v-lock').hidden=!bloq;
   document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===v)));
   {const nb=document.querySelector(`#nav [data-view="${v}"]`),nv=$('#nav');if(nb&&nv.scrollWidth>nv.clientWidth){const l=nb.offsetLeft-nv.offsetLeft;if(l<nv.scrollLeft||l+nb.offsetWidth>nv.scrollLeft+nv.clientWidth)nv.scrollLeft=l-12;}}
   try{history.replaceState(null,'','#'+v);}catch(e){}
   if(bloq){
-    $('#lock-t').textContent=v==='usuarios'?'Usuários':v==='dados'?'Dados':'Cadastro de equipamentos';
-    $('#lock-p').textContent=v==='usuarios'?'Entre com seu usuário para gerenciar usuários.':v==='dados'?'Só o administrador acessa os dados e as exportações.':'Entre com seu usuário para cadastrar equipamentos.';
+    $('#lock-t').textContent=v==='usuarios'?'Usuários':v==='dados'?'Dados':v==='pecas'?'Peças':'Cadastro de equipamentos';
+    $('#lock-p').textContent=v==='pecas'?'Entre com seu usuário para ver as solicitações de peças.':v==='usuarios'?'Entre com seu usuário para gerenciar usuários.':v==='dados'?'Só o administrador acessa os dados e as exportações.':'Entre com seu usuário para cadastrar equipamentos.';
     $('#lock-entrar span').textContent=usuarioAtual()?'Trocar de usuário':'Entrar';
     return;
   }
   if(v==='cadastro'){if(!fd)novo();renderCad();}
   if(v==='config')renderCfg();
+  if(v==='pecas')renderPecas();
   if(v==='usuarios')renderUsr();
   if(v==='dados')renderDados(true);
   agendarAjuste();
 }
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>setVista(b.dataset.view)));
 
-montarFrota(estrutura());vista=({'#cadastro':'cadastro','#config':'config','#usuarios':'usuarios','#dados':'dados'})[location.hash]||'painel';aplicarSessao();render();setInterval(tick,1000);
+montarFrota(estrutura());vista=({'#cadastro':'cadastro','#config':'config','#usuarios':'usuarios','#dados':'dados','#pecas':'pecas'})[location.hash]||'painel';aplicarSessao();render();setInterval(tick,1000);
 
 (async()=>{
   db=window.dt.db;mode='db';setSync('conectando');

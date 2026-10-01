@@ -3,7 +3,9 @@
 Sistema para a **Operação** e a **Manutenção** conversarem sobre equipamentos parados, em tempo real,
 nas TVs (sala de controle e oficina) e nos celulares.
 
-- A operação abre a parada, a manutenção assume, marca aguardando peça e libera, e a operação confirma o recebimento.
+- A operação abre a parada, a manutenção assume, solicita peças (quando precisa) e libera, e a operação confirma o recebimento.
+- O planejamento recebe as solicitações de peças, informa a ordem de compra e marca a chegada; quando todas as peças chegam,
+  o equipamento volta sozinho para "Em manutenção".
 - Tudo aparece na hora em todas as telas, com a cor do status, o tempo parado e a fila de atendimento.
 - Correções e cancelamentos ficam registrados com justificativa; dá para desfazer o último lançamento por 10 minutos.
 - O administrador exporta os dados para o Excel e conecta o Power Query direto no servidor.
@@ -63,14 +65,19 @@ Depois de mudar, rode `docker compose up -d`.
 - **Rede instável:** se o Wi-Fi cair, a TV continua mostrando o último estado com o aviso "Reconectando…", e os
   lançamentos feitos no celular sem sinal ficam guardados e são enviados assim que a conexão volta
   (desde que a página continue aberta).
+- **Peças:** a manutenção toca em **Solicitar peças** no equipamento e lista uma ou mais peças (descrição, código e
+  quantidade). O equipamento fica em **Peças solicitadas** e a solicitação aparece na aba **Peças**, com o número da parada.
+  O planejamento informa a ordem de compra (a mesma OC para várias peças ou uma por peça) e marca a chegada. Manutenção e
+  planejamento podem acrescentar peças. Quando todas chegam, o equipamento volta para **Em manutenção** automaticamente.
 - **Quem pode o quê:** operação e manutenção fazem o fluxo normal, correções, cadastro de equipamentos e de usuários.
+  O planejamento cuida das peças (ordem de compra e chegada).
   Só o administrador mexe em administradores, nas **Áreas**, nas configurações que valem para todas as telas e na aba **Dados**.
 
 ## Relatórios no Excel (Power Query)
 
 Na aba **Dados** (administrador) escolha a tabela, copie o código e cole no Excel em
 *Dados › Obter Dados › De Outras Fontes › Consulta Nula › Editor Avançado*. O botão **Atualizar Tudo**
-passa a buscar os dados direto do servidor. Tabelas: Paradas, Etapas, Correções, Equipamentos,
+passa a buscar os dados direto do servidor. Tabelas: Paradas, Etapas, Correções, Peças, Equipamentos,
 Eventos (histórico completo) e Usuários. Detalhes e a opção de conexão direta ao banco (Power BI) em
 [docs/POWER-QUERY.md](docs/POWER-QUERY.md).
 

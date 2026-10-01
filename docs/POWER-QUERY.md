@@ -14,9 +14,10 @@ os dados novos.
 
 | Tabela | Uma linha por | Campos principais |
 |--------|---------------|-------------------|
-| Paradas | parada | ID, TAG, Frota, Tipo, Área, Motivo, Início, Fim, Duração (h), Situação, Técnico, Horímetros |
-| Etapas | etapa de cada parada | Parada, TAG, Etapa (aguardando, em manutenção, aguardando peça, liberado), Início, Fim, Duração (h) |
+| Paradas | parada | ID, Nº, TAG, Frota, Tipo, Área, Motivo, Início, Fim, Duração (h), Situação, Técnico, Horímetros |
+| Etapas | etapa de cada parada | Parada, TAG, Etapa (aguardando, em manutenção, peças solicitadas, liberado), Início, Fim, Duração (h) |
 | Correções | correção ou cancelamento | Parada, Data, Por, Campo, De, Para, Justificativa |
+| Peças | peça solicitada | Parada nº, TAG, Peça, Código, Quantidade, Solicitada em/por, Ordem de compra, Chegou em, Espera (h), Situação |
 | Equipamentos | equipamento | TAG, Frota, Tipo, Porte, Modelo, Área, Ano, Horímetro, Situação atual |
 | Eventos | lançamento (histórico completo) | Data, TAG, Situação, Ação, Por, Detalhe, Horímetro |
 | Usuários | usuário | Matrícula, Nome, Perfil, Ativo (nunca o PIN) |
@@ -46,6 +47,7 @@ Esse usuário só lê as views (não enxerga PINs nem tabelas internas):
 | `vw_paradas` | paradas com frota, tipo, área, duração e situação |
 | `vw_etapas` | cada etapa de cada parada, com início, fim e duração |
 | `vw_correcoes` | correções e cancelamentos com justificativa |
+| `vw_pecas` | peças solicitadas, ordem de compra, chegada e tempo de espera |
 | `vw_equipamentos` | cadastro e situação atual |
 | `vw_eventos` | todos os eventos lançados (histórico completo) |
 | `vw_usuarios` | usuários sem PIN |

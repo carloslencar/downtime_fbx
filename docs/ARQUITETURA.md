@@ -27,8 +27,9 @@ Cada registro é um documento JSON na tabela `docs`, identificado por `(colecao,
 | Coleção | Id | Conteúdo |
 |---------|----|----------|
 | `equipamentos` | TAG (`ADT-01`) | frota, tipo, porte, modelo, área, horímetro, situação atual, parada em andamento, último lançamento |
-| `paradas` | `TAG_inicioMs` | motivo, observação, técnico, início, fim, horímetros, etapas `[{status,t,por}]`, correções `[{t,por,just,campo,de,para}]`, cancelada |
-| `usuarios` | `u` + matrícula | nome, nome curto, matrícula, perfil (`operacao`, `manutencao`, `admin`), ativo |
+| `paradas` | `TAG_inicioMs` | número sequencial (`numero`), motivo, observação, técnico, início, fim, horímetros, etapas `[{status,t,por}]`, correções `[{t,por,just,campo,de,para}]`, cancelada |
+| `pecas` | `idDaParada_p…` | peça solicitada: paradaId, número da parada, TAG, descrição, código, quantidade, quem pediu, ordem de compra (`oc`), chegada (`chegou`, `chegouEm`, `chegouPor`), cancelada |
+| `usuarios` | `u` + matrícula | nome, nome curto, matrícula, perfil (`operacao`, `manutencao`, `planejador`, `admin`), ativo |
 | `config` | `frotas`, `areas`, `opcoes` | frotas do painel, áreas, opções do horímetro e do QR code |
 | `log` | `feed` | 40 eventos mais recentes mostrados no painel |
 
@@ -36,7 +37,12 @@ Tabelas de apoio: `credenciais` (hash do PIN), `sessoes`, `eventos` (histórico 
 `historico` (cada gravação com o usuário que fez), `meta` (chave de relatórios, controle da importação),
 `migracoes`.
 
-Situações de um equipamento: `operando` › `aguardando` › `em_manutencao` ⇄ `aguardando_peca` › `liberado` › `operando`.
+Situações de um equipamento: `operando` › `aguardando` › `em_manutencao` ⇄ `aguardando_peca` (Peças solicitadas) › `liberado` › `operando`.
+
+A passagem entre `em_manutencao` e `aguardando_peca` é feita pelo servidor (`docs.js`, conferência das peças):
+quando há peça pendente numa parada em manutenção, vai para "Peças solicitadas"; quando não sobra nenhuma
+pendente (todas chegaram ou foram canceladas), volta para "Em manutenção". Ordem de compra e chegada só são
+gravadas pelo planejamento ou pelo administrador (`regras.js`).
 
 ## API
 

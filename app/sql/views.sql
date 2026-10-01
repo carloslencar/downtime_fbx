@@ -20,7 +20,7 @@ $$ select case s
     when 'operando'        then 'Operando'
     when 'aguardando'      then 'Aguardando manutenção'
     when 'em_manutencao'   then 'Em manutenção'
-    when 'aguardando_peca' then 'Aguardando peça'
+    when 'aguardando_peca' then 'Peças solicitadas'
     when 'liberado'        then 'Liberado · aguardando operação'
     when 'correcao'        then 'Correção'
     else s end $$;
@@ -43,10 +43,11 @@ create or replace function dt_perfil(s text) returns text
 $$ select case s
     when 'operacao'   then 'Operação'
     when 'manutencao' then 'Manutenção'
+    when 'planejador' then 'Planejamento'
     when 'admin'      then 'Administrador'
     else s end $$;
 
-drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas cascade;
+drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas, vw_pecas cascade;
 
 create view vw_frotas as
 select f->>'id'      as frota_id,
@@ -84,6 +85,7 @@ with p as (
   from docs d where d.colecao = 'paradas'
 )
 select p.id                                   as parada_id,
+       dt_num(p.dados->>'numero')::int        as numero,
        p.dados->>'tag'                        as tag,
        eq.frota,
        eq.tipo,
@@ -159,3 +161,28 @@ select u.dados->>'matricula' as matricula,
        coalesce((u.dados->>'ativo')::boolean, true) as ativo
 from docs u
 where u.colecao = 'usuarios';
+
+create view vw_pecas as
+select i.id                                   as item_id,
+       dt_num(i.dados->>'numero')::int        as parada_numero,
+       i.dados->>'paradaId'                   as parada_id,
+       i.dados->>'tag'                        as tag,
+       eq.frota,
+       i.dados->>'descricao'                  as descricao,
+       nullif(i.dados->>'codigo', '')         as codigo,
+       dt_num(i.dados->>'qtd')                as quantidade,
+       dt_ts(dt_ms(i.dados->>'criadoEm'))     as solicitada_em,
+       nullif(i.dados->>'criadoPor', '')      as solicitada_por,
+       nullif(i.dados->>'oc', '')             as ordem_compra,
+       dt_ts(dt_ms(i.dados->>'ocEm'))         as ordem_compra_em,
+       coalesce((i.dados->>'chegou')::boolean, false) as chegou,
+       dt_ts(dt_ms(i.dados->>'chegouEm'))     as chegou_em,
+       nullif(i.dados->>'chegouPor', '')      as recebida_por,
+       round(((coalesce(dt_ms(i.dados->>'chegouEm'), (extract(epoch from now()) * 1000)::bigint) - dt_ms(i.dados->>'criadoEm')) / 3600000.0)::numeric, 2) as espera_h,
+       case when coalesce((i.dados->>'cancelada')::boolean, false) then 'Cancelada'
+            when coalesce((i.dados->>'chegou')::boolean, false) then 'Chegou'
+            when nullif(i.dados->>'oc', '') is not null then 'Com ordem de compra'
+            else 'Aguardando ordem de compra' end as situacao
+from docs i
+left join vw_equipamentos eq on eq.tag = i.dados->>'tag'
+where i.colecao = 'pecas';

@@ -56,3 +56,17 @@ test('feed mescla sem perder eventos e guarda os 40 mais recentes', () => {
 test('usuário nunca sai com PIN ou hash', () => {
   assert.deepEqual(publico('usuarios', { nome: 'A', pinHash: 'x', pin: '1234' }), { nome: 'A' });
 });
+
+test('peças: manutenção pede, planejamento informa OC e chegada, operação não mexe', () => {
+  const man = { id: 'm', perfil: 'manutencao' }, plan = { id: 'p', perfil: 'planejador' };
+  const nova = { paradaId: 'X_1', descricao: 'Filtro', qtd: 1, oc: '', chegou: false };
+  assert.equal(verificar({ usuario: man, col: 'pecas', id: 'X_1_a', op: 'set', novo: nova }), null);
+  assert.equal(verificar({ usuario: plan, col: 'pecas', id: 'X_1_a', op: 'set', novo: nova }), null);
+  assert.equal(verificar({ usuario: op, col: 'pecas', id: 'X_1_a', op: 'set', novo: nova }).status, 403);
+  assert.equal(verificar({ usuario: man, col: 'pecas', id: 'X_1_a', op: 'set', anterior: nova, novo: { ...nova, oc: '45' } }).status, 403);
+  assert.equal(verificar({ usuario: man, col: 'pecas', id: 'X_1_a', op: 'set', anterior: nova, novo: { ...nova, chegou: true } }).status, 403);
+  assert.equal(verificar({ usuario: plan, col: 'pecas', id: 'X_1_a', op: 'set', anterior: nova, novo: { ...nova, oc: '45', chegou: true } }), null);
+  assert.equal(verificar({ usuario: man, col: 'pecas', id: 'X_1_a', op: 'set', anterior: nova, novo: { ...nova, qtd: 3 } }), null);
+  assert.equal(verificar({ usuario: plan, col: 'pecas', id: 'X_1_a', op: 'delete', anterior: nova }).status, 403);
+  assert.equal(verificar({ usuario: man, col: 'pecas', id: 'X_1_a', op: 'set', novo: { ...nova, descricao: ' ' } }).status, 400);
+});

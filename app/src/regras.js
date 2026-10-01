@@ -1,8 +1,10 @@
 'use strict';
 // Regras de quem pode gravar o quê. Conferidas no servidor em toda gravação.
 
-const COLECOES = new Set(['equipamentos', 'paradas', 'usuarios', 'config', 'log']);
-const PERFIS = new Set(['operacao', 'manutencao', 'admin']);
+const COLECOES = new Set(['equipamentos', 'paradas', 'usuarios', 'config', 'log', 'pecas']);
+const PERFIS = new Set(['operacao', 'manutencao', 'planejador', 'admin']);
+// Campos de uma peça que só o planejamento (ou o administrador) altera.
+const CAMPOS_PLANEJAMENTO = ['oc', 'chegou'];
 const ID_OK = /^[A-Za-z0-9_.:@+-]{1,120}$/;
 
 function negar(status, mensagem) { return { status, mensagem }; }
@@ -53,6 +55,21 @@ function verificar({ usuario, col, id, op, anterior, novo, adminsAtivos = 0, haU
     const eraAdminAtivo = anterior && anterior.perfil === 'admin' && anterior.ativo !== false;
     const continuaAdminAtivo = op === 'set' && novo.perfil === 'admin' && novo.ativo !== false;
     if (eraAdminAtivo && !continuaAdminAtivo && adminsAtivos <= 1) return negar(403, 'Este é o único administrador ativo.');
+    return null;
+  }
+  if (col === 'pecas') {
+    const plan = usuario.perfil === 'planejador' || admin;
+    if (op === 'delete') return admin ? null : negar(403, 'Peças não são apagadas: cancele o item.');
+    if (!plan && usuario.perfil !== 'manutencao') return negar(403, 'Só a manutenção e o planejamento mexem na lista de peças.');
+    if (!novo.paradaId || !String(novo.descricao || '').trim()) return negar(400, 'Informe a peça.');
+    if (!plan) {
+      const antes = anterior || {};
+      for (const k of CAMPOS_PLANEJAMENTO) {
+        if (JSON.stringify(antes[k] ?? null) !== JSON.stringify(novo[k] ?? null) && !(anterior == null && !novo[k])) {
+          return negar(403, 'Ordem de compra e chegada da peça são marcadas pelo planejamento.');
+        }
+      }
+    }
     return null;
   }
   if (col === 'paradas' && op === 'delete' && !admin) return negar(403, 'Só o administrador remove paradas.');

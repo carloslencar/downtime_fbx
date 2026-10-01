@@ -9,7 +9,7 @@ const TABELAS = {
   paradas: {
     view: 'vw_paradas', ordem: 'inicio desc', filtroData: 'inicio',
     cols: {
-      parada_id: 'ID', tag: 'TAG', frota: 'Frota', tipo: 'Tipo', area: 'Área', motivo: 'Motivo', observacao: 'Observação',
+      parada_id: 'ID', numero: 'Nº', tag: 'TAG', frota: 'Frota', tipo: 'Tipo', area: 'Área', motivo: 'Motivo', observacao: 'Observação',
       inicio: 'Início', fim: 'Fim', duracao_h: 'Duração (h)', situacao: 'Situação', tecnico: 'Técnico',
       horimetro_inicio: 'Horímetro início', horimetro_fim: 'Horímetro fim', correcoes: 'Correções', aberta_por: 'Aberta por'
     }
@@ -36,6 +36,15 @@ const TABELAS = {
     view: 'vw_eventos', ordem: 'data desc', filtroData: 'data',
     cols: { data: 'Data', tag: 'TAG', situacao: 'Situação', acao: 'Ação', por: 'Por', detalhe: 'Detalhe', horimetro: 'Horímetro' }
   },
+  pecas: {
+    view: 'vw_pecas', ordem: 'solicitada_em desc', filtroData: 'solicitada_em',
+    cols: {
+      parada_numero: 'Parada nº', parada_id: 'Parada', tag: 'TAG', frota: 'Frota', descricao: 'Peça', codigo: 'Código',
+      quantidade: 'Quantidade', solicitada_em: 'Solicitada em', solicitada_por: 'Solicitada por', ordem_compra: 'Ordem de compra',
+      ordem_compra_em: 'OC informada em', chegou: 'Chegou', chegou_em: 'Chegou em', recebida_por: 'Recebida por',
+      espera_h: 'Espera (h)', situacao: 'Situação'
+    }
+  },
   usuarios: {
     view: 'vw_usuarios', ordem: 'nome',
     cols: { matricula: 'Matrícula', nome: 'Nome', nome_curto: 'Nome curto', perfil: 'Perfil', ativo: 'Ativo' }
@@ -47,7 +56,9 @@ const TIPOS_M = {
   'Início': 'datetime', 'Fim': 'datetime', 'Data': 'datetime', 'Desde': 'datetime', 'Leitura do horímetro': 'datetime',
   'Duração (h)': 'number', 'Horímetro início': 'number', 'Horímetro fim': 'number', 'Horímetro': 'number',
   'Correções': 'Int64.Type', 'Ordem': 'Int64.Type', 'Ano': 'Int64.Type',
-  'Parada cancelada': 'logical', 'No painel': 'logical', 'Ativo': 'logical'
+  'Parada cancelada': 'logical', 'No painel': 'logical', 'Ativo': 'logical',
+  'Nº': 'Int64.Type', 'Parada nº': 'Int64.Type', 'Quantidade': 'number', 'Solicitada em': 'datetime', 'OC informada em': 'datetime',
+  'Chegou em': 'datetime', 'Chegou': 'logical', 'Espera (h)': 'number'
 };
 
 async function chave() {

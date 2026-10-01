@@ -223,6 +223,7 @@ async function iniciar() {
   await db.migrar();
   await seed.importarInicial();
   await seed.recuperarAdmin();
+  await docs.numerarParadas();
   const srv = criarServidor();
   srv.keepAliveTimeout = 65000;
   await new Promise(ok => srv.listen(config.porta, ok));

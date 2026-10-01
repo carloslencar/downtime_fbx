@@ -30,7 +30,7 @@
       <div><h1>Quadro de Paradas</h1><p>Operação × Manutenção · frota de mina</p></div>
     </div>
     <div class="ctrl">
-      <div class="seg nav" id="nav" role="group" aria-label="Seção"><button type="button" data-view="painel">Painel</button><button type="button" data-view="cadastro">Cadastro</button><button type="button" data-view="usuarios">Usuários</button><button type="button" data-view="dados" id="nav-dados" hidden>Dados</button><button type="button" data-view="config" aria-label="Configurações">Configurações</button></div>
+      <div class="seg nav" id="nav" role="group" aria-label="Seção"><button type="button" data-view="painel">Painel</button><button type="button" data-view="cadastro">Cadastro</button><button type="button" data-view="usuarios">Usuários</button><button type="button" data-view="pecas" id="nav-pecas" hidden>Peças</button><button type="button" data-view="dados" id="nav-dados" hidden>Dados</button><button type="button" data-view="config" aria-label="Configurações">Configurações</button></div>
       <span class="pill" id="sync" data-s="local"><i></i><span>Modo local</span></span>
       <div id="sessao"></div>
       <button type="button" class="bt ico" id="bt-qr" title="QR code de acesso pelo celular" aria-label="QR code de acesso pelo celular"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><path d="M9 9h2v2M13 9v5M9 13h2"/></svg><span>QR code</span></button>
@@ -48,7 +48,7 @@
     </div>
     <div class="k" style="--c:var(--s-wait)"><div class="k-l"><i></i>Aguardando atendimento</div><div class="k-v" id="k-aguardando">0</div></div>
     <div class="k" style="--c:var(--s-maint)"><div class="k-l"><i></i>Em manutenção</div><div class="k-v" id="k-em_manutencao">0</div></div>
-    <div class="k" style="--c:var(--s-peca)"><div class="k-l"><i></i>Aguardando peça</div><div class="k-v" id="k-aguardando_peca">0</div></div>
+    <div class="k" style="--c:var(--s-peca)"><div class="k-l"><i></i>Peças solicitadas</div><div class="k-v" id="k-aguardando_peca">0</div></div>
     <div class="k" style="--c:var(--s-lib)"><div class="k-l"><i></i>Liberados p/ operação</div><div class="k-v" id="k-liberado">0</div></div>
     <div class="k espera"><div class="k-l">Maior espera sem atendimento</div><div class="k-v" id="k-espera">—</div></div>
   </section>
@@ -60,7 +60,7 @@
       <button type="button" class="painel qrfix" id="qrfix" hidden aria-label="QR code de acesso pelo celular"><canvas id="qrfix-cv" width="120" height="120" aria-hidden="true"></canvas><span><b>Acesse pelo celular</b><small>Aponte a câmera para abrir o quadro e registrar paradas.</small></span></button>
       <section class="painel evs"><h3>Últimos eventos</h3><div class="lista" id="evs"></div></section>
       <div class="legenda">
-        <span data-c="operando"><i></i>Operando</span><span data-c="aguardando"><i></i>Aguardando</span><span data-c="em_manutencao"><i></i>Em manutenção</span><span data-c="aguardando_peca"><i></i>Aguard. peça</span><span data-c="liberado"><i></i>Liberado</span>
+        <span data-c="operando"><i></i>Operando</span><span data-c="aguardando"><i></i>Aguardando</span><span data-c="em_manutencao"><i></i>Em manutenção</span><span data-c="aguardando_peca"><i></i>Peças solic.</span><span data-c="liberado"><i></i>Liberado</span>
       </div>
     </aside>
   </div>
@@ -90,6 +90,14 @@
         <div class="op sub som-sub">
           <div><b>Equipamento liberado</b><p>Carrilhão curto quando a manutenção libera um equipamento.</p></div>
           <div class="som-l"><button type="button" class="lnk" data-som-teste="liberado">Ouvir</button><label class="sw" for="c-som-lib"><input type="checkbox" id="c-som-lib"><span class="sr">Equipamento liberado</span></label></div>
+        </div>
+        <div class="op sub som-sub">
+          <div><b>Peças solicitadas</b><p>Dois bipes duplos quando a manutenção pede ou adiciona peças. Para a tela do planejamento.</p></div>
+          <div class="som-l"><button type="button" class="lnk" data-som-teste="pecas">Ouvir</button><label class="sw" for="c-som-pecas"><input type="checkbox" id="c-som-pecas"><span class="sr">Peças solicitadas</span></label></div>
+        </div>
+        <div class="op sub som-sub">
+          <div><b>Peças recebidas</b><p>Duas notas quando todas as peças de uma parada chegam. Para a TV da oficina.</p></div>
+          <div class="som-l"><button type="button" class="lnk" data-som-teste="chegada">Ouvir</button><label class="sw" for="c-som-cheg"><input type="checkbox" id="c-som-cheg"><span class="sr">Peças recebidas</span></label></div>
         </div>
         <div class="op sub som-sub">
           <div><b>Lembrete de espera</b><p>Repete dois bipes enquanto houver equipamento aguardando atendimento há mais de:</p></div>
@@ -138,6 +146,15 @@
       </section>
     </div>
   </div>
+  <div class="vista frm" id="v-pecas" hidden>
+    <section class="kpis dk" id="p-resumo" aria-label="Resumo das peças"></section>
+    <section class="painel p-barra">
+      <div class="seg" id="p-filtro" role="group" aria-label="Mostrar"><button type="button" data-f="pendentes">Pendentes</button><button type="button" data-f="semoc">Sem ordem de compra</button><button type="button" data-f="todas">Todas</button></div>
+      <input type="search" id="p-busca" placeholder="Buscar TAG, nº da parada, peça ou OC" aria-label="Buscar solicitações de peças">
+    </section>
+    <p class="p-msg" id="p-msg" role="status" hidden></p>
+    <div id="p-lista"></div>
+  </div>
   <div class="vista" id="v-lock" hidden>
     <section class="painel lock">
       <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="18" width="24" height="17" rx="3"/><path d="M13 18v-5a7 7 0 0 1 14 0v5"/><circle cx="20" cy="26" r="2" fill="currentColor"/></svg>
@@ -150,7 +167,7 @@
     <div class="d-grid">
       <section class="painel d-exp frm">
         <h3>Exportar dados</h3>
-        <p class="intro">Uma planilha com cinco abas: Paradas, Etapas, Correções, Equipamentos e Usuários (sem o PIN). As datas já saem no formato do Excel.</p>
+        <p class="intro">Uma planilha com seis abas: Paradas, Etapas, Correções, Peças, Equipamentos e Usuários (sem o PIN). As datas já saem no formato do Excel.</p>
         <div class="d-per">
           <div class="cp"><label for="d-de">De</label><input type="date" id="d-de"></div>
           <div class="cp"><label for="d-ate">Até</label><input type="date" id="d-ate"></div>
@@ -170,7 +187,7 @@
           <li>Repita para cada tabela que quiser usar nos relatórios.</li>
           <li>Para atualizar, clique em Dados, Atualizar Tudo. O Excel busca os dados direto do servidor, sem baixar arquivo.</li>
         </ol>
-        <div class="cp"><label for="d-pq-tab">Tabela</label><select id="d-pq-tab"><option value="paradas">Paradas</option><option value="etapas">Etapas</option><option value="correcoes">Correções</option><option value="equipamentos">Equipamentos</option><option value="eventos">Eventos (histórico completo)</option><option value="usuarios">Usuários</option></select></div>
+        <div class="cp"><label for="d-pq-tab">Tabela</label><select id="d-pq-tab"><option value="paradas">Paradas</option><option value="etapas">Etapas</option><option value="correcoes">Correções</option><option value="pecas">Peças</option><option value="equipamentos">Equipamentos</option><option value="eventos">Eventos (histórico completo)</option><option value="usuarios">Usuários</option></select></div>
         <div class="mcode"><div class="mh"><span>Consulta da tabela <b id="d-m-tab"></b></span><button type="button" id="d-copiar">Copiar código</button></div><pre id="d-m"></pre></div>
         <div class="cp"><label for="d-link">Link direto da tabela (CSV)</label><input type="text" id="d-link" readonly spellcheck="false"></div>
         <p class="nota">O código e o link levam a chave de acesso aos relatórios: quem tiver a chave consegue ler os dados. Compartilhe só com quem monta os relatórios. <button type="button" class="lnk" id="d-chave">Gerar nova chave</button></p>
@@ -220,6 +237,7 @@
 <script src="js/dados.js"></script>
 <script src="js/cliente.js"></script>
 <script src="js/app.js"></script>
+<script src="js/pecas.js"></script>
 <script src="js/alarme.js"></script>
 </body>
 </html>
