@@ -11,7 +11,8 @@ const TABELAS = {
     cols: {
       parada_id: 'ID', numero: 'Nº', tag: 'TAG', frota: 'Frota', tipo: 'Tipo', area: 'Área', motivo: 'Motivo', observacao: 'Observação',
       inicio: 'Início', fim: 'Fim', duracao_h: 'Duração (h)', situacao: 'Situação', tecnico: 'Técnico',
-      horimetro_inicio: 'Horímetro início', horimetro_fim: 'Horímetro fim', correcoes: 'Correções', aberta_por: 'Aberta por'
+      horimetro_inicio: 'Horímetro início', horimetro_fim: 'Horímetro fim', correcoes: 'Correções', aberta_por: 'Aberta por',
+      responsaveis: 'Responsáveis', transferencias: 'Transferências'
     }
   },
   etapas: {
@@ -57,7 +58,7 @@ const TIPOS_M = {
   'Duração (h)': 'number', 'Horímetro início': 'number', 'Horímetro fim': 'number', 'Horímetro': 'number',
   'Correções': 'Int64.Type', 'Ordem': 'Int64.Type', 'Ano': 'Int64.Type',
   'Parada cancelada': 'logical', 'No painel': 'logical', 'Ativo': 'logical',
-  'Nº': 'Int64.Type', 'Parada nº': 'Int64.Type', 'Quantidade': 'number', 'Solicitada em': 'datetime', 'OC informada em': 'datetime',
+  'Nº': 'Int64.Type', 'Transferências': 'Int64.Type', 'Parada nº': 'Int64.Type', 'Quantidade': 'number', 'Solicitada em': 'datetime', 'OC informada em': 'datetime',
   'Chegou em': 'datetime', 'Chegou': 'logical', 'Espera (h)': 'number'
 };
 

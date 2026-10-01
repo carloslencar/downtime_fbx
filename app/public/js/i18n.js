@@ -53,6 +53,9 @@ const EN={
 };
 const PAT=[
  [/^Parada nº (\d+)$/,'Stop #$1'],
+ [/^Atendimento transferido para (.+)\.$/,'Job handed over to $1.'],
+ [/^recebeu de (.+) às (\d\d:\d\d)$/,'taken over from $1 at $2'],
+ [/^Hoje com$/,'Currently with'],
  [/^(\d+) peças?$/,(m,n)=>n+(n==='1'?' part':' parts')],
  [/^(\d+) (chegou|chegaram)$/,'$1 arrived'],
  [/^(\d+) itens?$/,(m,n)=>n+(n==='1'?' item':' items')],
@@ -127,6 +130,10 @@ Object.assign(EN,{
 'Lembrete de espera':'Waiting reminder','Repete dois bipes enquanto houver equipamento aguardando atendimento há mais de:':'Repeats two beeps while any unit has been waiting for service for more than:',
 'Volume':'Volume','O volume final também depende do volume da TV ou do computador.':'The final loudness also depends on the TV or computer volume.',
 'Ouvir':'Play',
+'Responsável:':'Responsible:','Transferir atendimento':'Hand over job','Transferir':'Hand over','Passar para':'Hand over to','Observação (opcional)':'Note (optional)',
+'Escolha outro técnico.':'Pick another technician.','Atendimento transferido':'Job handed over','Responsáveis':'Responsible',
+'Não há outro técnico de manutenção ativo para receber o atendimento. Cadastre na aba Usuários.':'There is no other active maintenance technician to take the job. Add one in the Users tab.',
+'A etapa e o tempo de parada continuam os mesmos; a troca fica registrada no histórico.':'The stage and downtime stay the same; the handover is recorded in the history.',
 'Peças solicitadas':'Parts requested','Peças solic.':'Parts req.','Peças':'Parts','Planejamento':'Planning',
 'Recebe as solicitações de peças da manutenção, informa a ordem de compra e marca a chegada das peças.':'Receives parts requests from maintenance, enters the purchase order and marks when parts arrive.',
 'Assume atendimentos, solicita peças e libera. Também corrige lançamentos, cadastra equipamentos e usuários.':'Takes jobs, requests parts and releases. Also corrects entries and manages equipment and users.',

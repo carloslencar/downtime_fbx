@@ -312,8 +312,9 @@ function supervisorHtml(e){
 function acoesHtml(e){
   if(!papel)return `<p class="nota">Entre com seu usuário para registrar ações neste equipamento.</p><div class="acoes"><button type="button" class="go" style="--k:var(--glass)" data-acao="login">Entrar</button></div>`;
   if(aberto.modo==='pecas')return formPecasHtml(e);
+  if(aberto.modo==='transf')return formTransfHtml(e);
   if(aberto.modo)return supervisorHtml(e);
-  if(papel==='admin')return listaPecasModal(e)+'<p class="nota">Como administrador, você corrige lançamentos. Abrir, atender e liberar ficam com a operação e a manutenção.</p>'+supervisorHtml(e);
+  if(papel==='admin')return respHtml(e)+listaPecasModal(e)+'<p class="nota">Como administrador, você corrige lançamentos. Abrir, atender e liberar ficam com a operação e a manutenção.</p>'+supervisorHtml(e);
   if(papel==='planejador')return acoesPlanejamento(e);
   return acoesPapel(e)+supervisorHtml(e);
 }
@@ -327,11 +328,42 @@ function acoesPapel(e){
   if(e.status==='operando')return nota('Paradas são abertas pela operação.');
   if(e.status==='liberado')return nota('Liberado. Aguardando a operação confirmar o recebimento.');
   if(e.status==='aguardando')return `<div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos().map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
-  const obs=`<div class="fs"><label for="obs">${e.status==='em_manutencao'?'Nota (nº do pedido ou serviço feito)':'Nota da liberação'}</label><input type="text" id="obs" maxlength="80" placeholder="${e.status==='em_manutencao'?'Pedido 4502 · filtro hidráulico':'Serviço concluído, testado em campo'}"></div>`;
+  const resp=respHtml(e);
+  const obs=resp+`<div class="fs"><label for="obs">${e.status==='em_manutencao'?'Nota (nº do pedido ou serviço feito)':'Nota da liberação'}</label><input type="text" id="obs" maxlength="80" placeholder="${e.status==='em_manutencao'?'Pedido 4502 · filtro hidráulico':'Serviço concluído, testado em campo'}"></div>`;
   if(e.status==='em_manutencao')return listaPecasModal(e)+obs+horCampo(e)+`<div class="acoes"><button type="button" class="go sec" style="--k:var(--s-peca)" data-acao="modoPecas">Solicitar peças</button><button type="button" class="go" style="--k:var(--s-lib)" data-acao="liberar">Liberar equipamento</button></div>`;
   // Peças solicitadas: o status volta sozinho para "em manutenção" quando todas as peças chegam.
   const semPendencia=!resumoPecas(e.paradaId).pendentes;
   return listaPecasModal(e)+obs+horCampo(e)+`<div class="acoes"><button type="button" class="go sec" style="--k:var(--s-peca)" data-acao="modoPecas">Adicionar peças</button>${semPendencia?`<button type="button" class="go sec" style="--k:var(--s-maint)" data-acao="retomar">Retomar atendimento</button>`:''}<button type="button" class="go" style="--k:var(--s-lib)" data-acao="liberar">Liberar equipamento</button></div>`;
+}
+
+/* ---------- Transferência do atendimento ----------
+   A manutenção pode passar o equipamento para outro técnico (troca de equipe ou de turno).
+   Não muda a etapa nem o tempo; fica registrado na parada (responsaveis) e no histórico de eventos. */
+function respHtml(e){
+  if(!(e.status==='em_manutencao'||e.status==='aguardando_peca')||!(papel==='manutencao'||papel==='admin'))return '';
+  const par=paradaAtual(e),r=par&&par.responsaveis&&par.responsaveis.length>1?par.responsaveis[par.responsaveis.length-1]:null;
+  return `<div class="desf resp"><span>Responsável: <b>${esc(e.tecnico||'—')}</b>${r?` · recebeu de ${esc(r.de||'—')} às ${hhmm(r.t)}`:''}</span><button type="button" data-acao="modoTransf">Transferir atendimento</button></div>`;
+}
+function formTransfHtml(e){
+  const lista=tecnicos().filter(t=>t!==e.tecnico);
+  const err=aberto.err?`<p class="erro">${esc(aberto.err)}</p>`:'';
+  if(!lista.length)return `<div class="corr"><h4>Transferir atendimento</h4><p class="nota">Não há outro técnico de manutenção ativo para receber o atendimento. Cadastre na aba Usuários.</p><div class="acoes"><button type="button" class="go sec" style="--k:var(--muted)" data-acao="voltar">Voltar</button></div></div>`;
+  return `<div class="corr"><h4>Transferir atendimento</h4>
+    <p class="nota" style="border-style:solid">Hoje com <b>${esc(e.tecnico||'—')}</b>. A etapa e o tempo de parada continuam os mesmos; a troca fica registrada no histórico.</p>
+    <div class="fs"><label for="t-tec">Passar para</label><select id="t-tec">${lista.map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div class="fs"><label for="t-nota">Observação (opcional)</label><input type="text" id="t-nota" maxlength="80" placeholder="Troca de turno · falta testar a bomba"></div>${err}
+    <div class="acoes"><button type="button" class="go sec" style="--k:var(--muted)" data-acao="voltar">Voltar</button><button type="button" class="go" style="--k:var(--s-maint)" data-acao="confTransf">Transferir</button></div></div>`;
+}
+async function transferir(e,novoTec,nota){
+  const now=Date.now(),de=e.tecnico||'',quem=PAPEL_NOME[papel]+nomeSessao();
+  const par=paradaAtual(e)||paradaNova(e);
+  const ini=(par.etapas||[]).find(x=>x.status==='em_manutencao');
+  const hist=par.responsaveis&&par.responsaveis.length?par.responsaveis:(de?[{tecnico:de,t:ini?ini.t:e.desde,por:''}]:[]);
+  par.responsaveis=[...hist,{tecnico:novoTec,de,t:now,por:quem,nota:nota||''}];
+  par.tecnico=novoTec;
+  const novo={...e,tecnico:novoTec,paradaId:par.id};
+  const evento={t:now,tag:e.tag,status:e.status,acao:'Atendimento transferido',por:quem,detalhe:`${de||'—'} → ${novoTec}${nota?' · '+nota:''}`};
+  return gravar(e.tag,novo,par,evento);
 }
 
 function erroCorr(msg){aberto.err=msg;const keep=lerCorr();renderModal();restaurarCorr(keep);}
@@ -409,6 +441,14 @@ $('#dlg').addEventListener('click',async ev=>{
   if(modos[a]){aberto.modo=modos[a];aberto.err='';aberto.msg=null;renderModal();const f=$('#dlg .corr input');if(f)f.focus();return;}
   if(a==='voltar'){aberto.modo=null;aberto.err='';renderModal();return;}
   if(await cliquePecasModal(a,t,e))return;
+  if(a==='modoTransf'){aberto.modo='transf';aberto.err='';aberto.msg=null;renderModal();const s=$('#t-tec');if(s)s.focus();return;}
+  if(a==='confTransf'){
+    const novoTec=$('#t-tec').value,nota=$('#t-nota').value.trim();
+    if(!novoTec||novoTec===e.tecnico){aberto.err='Escolha outro técnico.';renderModal();return;}
+    t.disabled=true;const ok=await transferir(e,novoTec,nota);
+    if(ok===false){t.disabled=false;return;}
+    aberto.modo=null;aberto.err='';aberto.msg={txt:`Atendimento transferido para ${novoTec}.`,c:e.status};renderModal();const m=$('#dlg .okmsg');if(m)m.focus();return;
+  }
   if(a==='login'){const tg=aberto.tag;fechar();abrirLogin(tg);return;}
   let ok,msgKey=a;
   if(a==='desfazer'){
@@ -1066,8 +1106,8 @@ function montarTabelas(lista){
   const ps=lista.filter(p=>p.inicio>=de&&p.inicio<=ate).sort((a,b)=>b.inicio-a.inicio);
   const eqInfo=tag=>{const e=equip[tag]||{};return {frota:(frotaDe(e.grupo)||{}).nome||'',tipo:(TIPO[e.tipo]||{}).nome||''};};
   const T={};
-  T.Paradas={cols:['ID','Nº','TAG','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções'],tipos:['s','n','s','s','s','s','s','d','d','n','s','s','n','n','n'],
-    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.numero??null,p.tag,i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length];})};
+  T.Paradas={cols:['ID','Nº','TAG','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções','Responsáveis'],tipos:['s','n','s','s','s','s','s','d','d','n','s','s','n','n','n','s'],
+    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.numero??null,p.tag,i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length,(p.responsaveis||[]).map(r=>r.tecnico).join(' → ')||p.tecnico||''];})};
   const et=[];
   for(const p of ps){const es=(p.etapas||[]).slice().sort((a,b)=>a.t-b.t);es.forEach((s,k)=>{if(s.status==='operando')return;const fim=k+1<es.length?es[k+1].t:(p.fim||null);et.push([p.id,p.tag,(ST[s.status]||{rot:s.status}).rot,s.t,fim,horas((fim||now)-s.t),s.por||'',p.cancelada?'Sim':'Não']);});}
   T.Etapas={cols:['Parada','TAG','Etapa','Início','Fim','Duração (h)','Registrado por','Parada cancelada'],tipos:['s','s','s','d','d','n','s','s'],rows:et};

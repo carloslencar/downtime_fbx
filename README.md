@@ -69,6 +69,9 @@ Depois de mudar, rode `docker compose up -d`.
   quantidade). O equipamento fica em **Peças solicitadas** e a solicitação aparece na aba **Peças**, com o número da parada.
   O planejamento informa a ordem de compra (a mesma OC para várias peças ou uma por peça) e marca a chegada. Manutenção e
   planejamento podem acrescentar peças. Quando todas chegam, o equipamento volta para **Em manutenção** automaticamente.
+- **Transferir atendimento:** com o equipamento em manutenção (ou com peças solicitadas), a manutenção toca em
+  **Transferir atendimento**, escolhe o novo técnico e, se quiser, escreve uma observação (ex.: troca de turno).
+  A etapa e o tempo não mudam; a troca aparece nos eventos e na coluna "Responsáveis" dos relatórios.
 - **Quem pode o quê:** operação e manutenção fazem o fluxo normal, correções, cadastro de equipamentos e de usuários.
   O planejamento cuida das peças (ordem de compra e chegada).
   Só o administrador mexe em administradores, nas **Áreas**, nas configurações que valem para todas as telas e na aba **Dados**.

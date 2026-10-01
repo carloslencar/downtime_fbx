@@ -100,7 +100,10 @@ select p.id                                   as parada_id,
        dt_num(p.dados->>'horIni')             as horimetro_inicio,
        dt_num(p.dados->>'horFim')             as horimetro_fim,
        jsonb_array_length(coalesce(p.dados->'correcoes', '[]'::jsonb)) as correcoes,
-       nullif(p.dados->'etapas'->0->>'por', '') as aberta_por
+       nullif(p.dados->'etapas'->0->>'por', '') as aberta_por,
+       (select string_agg(r->>'tecnico', ' → ' order by n)
+          from jsonb_array_elements(coalesce(p.dados->'responsaveis', '[]'::jsonb)) with ordinality as x(r, n)) as responsaveis,
+       greatest(jsonb_array_length(coalesce(p.dados->'responsaveis', '[]'::jsonb)) - 1, 0) as transferencias
 from p
 left join vw_equipamentos eq on eq.tag = p.dados->>'tag';
 
