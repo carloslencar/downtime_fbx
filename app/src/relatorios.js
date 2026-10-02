@@ -12,7 +12,7 @@ const TABELAS = {
       parada_id: 'ID', numero: 'Nº', tag: 'TAG', oficina: 'Oficina', frota: 'Frota', tipo: 'Tipo', area: 'Área', motivo: 'Motivo', observacao: 'Observação',
       inicio: 'Início', fim: 'Fim', duracao_h: 'Duração (h)', situacao: 'Situação', tecnico: 'Técnico',
       horimetro_inicio: 'Horímetro início', horimetro_fim: 'Horímetro fim', correcoes: 'Correções', aberta_por: 'Aberta por',
-      responsaveis: 'Responsáveis', transferencias: 'Transferências'
+      responsaveis: 'Responsáveis', transferencias: 'Transferências', tipo_parada: 'Tipo de parada', preventiva: 'Preventiva'
     }
   },
   etapas: {
@@ -30,7 +30,7 @@ const TABELAS = {
     view: 'vw_equipamentos', ordem: 'tag',
     cols: {
       tag: 'TAG', oficina: 'Oficina', frota: 'Frota', tipo: 'Tipo', porte: 'Porte', modelo: 'Modelo', area: 'Área', ano: 'Ano', horimetro: 'Horímetro',
-      horimetro_em: 'Leitura do horímetro', situacao_atual: 'Situação atual', situacao_desde: 'Desde', no_painel: 'No painel'
+      horimetro_em: 'Leitura do horímetro', media_h_dia: 'Média (h/dia)', situacao_atual: 'Situação atual', situacao_desde: 'Desde', no_painel: 'No painel'
     }
   },
   eventos: {
@@ -46,6 +46,14 @@ const TABELAS = {
       espera_h: 'Espera (h)', situacao: 'Situação'
     }
   },
+  leituras: {
+    view: 'vw_leituras', ordem: 'coletada_em desc', filtroData: 'coletada_em',
+    cols: { tag: 'TAG', oficina: 'Oficina', frota: 'Frota', horimetro: 'Horímetro', coletada_em: 'Coletada em', lancada_em: 'Lançada em', lancada_por: 'Lançada por', origem: 'Origem' }
+  },
+  preventivas: {
+    view: 'vw_preventivas', ordem: 'data desc', filtroData: 'data',
+    cols: { tag: 'TAG', oficina: 'Oficina', frota: 'Frota', preventiva: 'Preventiva', horimetro: 'Horímetro', data: 'Data', parada_numero: 'Parada nº', origem: 'Origem', registrado_por: 'Registrado por' }
+  },
   usuarios: {
     view: 'vw_usuarios', ordem: 'nome',
     cols: { matricula: 'Matrícula', nome: 'Nome', nome_curto: 'Nome curto', perfil: 'Perfil', oficina: 'Oficina', ativo: 'Ativo' }
@@ -59,7 +67,7 @@ const TIPOS_M = {
   'Correções': 'Int64.Type', 'Ordem': 'Int64.Type', 'Ano': 'Int64.Type',
   'Parada cancelada': 'logical', 'No painel': 'logical', 'Ativo': 'logical',
   'Nº': 'Int64.Type', 'Transferências': 'Int64.Type', 'Parada nº': 'Int64.Type', 'Quantidade': 'number', 'Solicitada em': 'datetime', 'OC informada em': 'datetime',
-  'Chegou em': 'datetime', 'Chegou': 'logical', 'Espera (h)': 'number'
+  'Chegou em': 'datetime', 'Chegou': 'logical', 'Espera (h)': 'number', 'Média (h/dia)': 'number', 'Coletada em': 'datetime', 'Lançada em': 'datetime'
 };
 
 async function chave() {

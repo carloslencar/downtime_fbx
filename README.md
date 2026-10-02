@@ -8,6 +8,8 @@ nas TVs (sala de controle e oficina) e nos celulares.
   sozinho por **Peças solicitadas** → **Aguardando peças** (todas com OC) → **Peças recebidas**, e aí um mecânico assume.
 - Tudo aparece na hora em todas as telas, com a cor do status, o tempo parado e a fila de atendimento.
 - Correções e cancelamentos ficam registrados com justificativa; dá para desfazer o último lançamento por 10 minutos.
+- O planejamento controla as **preventivas pelo horímetro**: lança os horímetros todo dia (com a hora da coleta), e o
+  painel avisa quando a preventiva está próxima ou vencida. A operação manda o equipamento para a preventiva.
 - O administrador exporta os dados para o Excel e conecta o Power Query direto no servidor.
 - Funciona na intranet, sem internet. Quem entra pelo celular só escaneia o QR code: nada para instalar.
 
@@ -79,19 +81,34 @@ Depois de mudar, rode `docker compose up -d`.
   por exemplo `http://downtime/?oficina=oficina-norte` (o próprio sistema mostra o endereço certo de cada oficina).
   O filtro vale para o painel, a fila, os eventos, os avisos, o alarme sonoro e a aba Peças. A sala de controle
   continua em "Todas as oficinas".
+- **Preventivas (aba Preventivas, planejamento):**
+  - **Planos:** um plano por frota, com os intervalos da revisão. Intervalos aninhados (ex.: 250, 500, 1000, 2000 h)
+    formam o ciclo PM 250 → PM 500 → PM 250 → PM 1000 → … → PM 2000; com um intervalo só (ex.: 250), todas são iguais.
+    Também define com quantas horas de antecedência o painel avisa.
+  - **Horímetros:** lançamento diário de todos os equipamentos numa tela só. A **data e a hora da coleta** ficam no topo
+    (ex.: leitura feita às 07:00 e lançada à noite) e cada linha pode ter um horário próprio. Enter passa para o próximo
+    equipamento; dá para colar as colunas TAG e horímetro do Excel. A tela recusa leitura menor que a anterior e pede
+    confirmação quando o horímetro subiu mais horas que o tempo passado. O horímetro do quadro é sempre a leitura com
+    a coleta mais recente, e o uso médio (h/dia) dos últimos 30 dias dá a data prevista da próxima preventiva.
+  - **Preventivas:** lista de vencidas e próximas, com a última feita, a próxima revisão, as horas que faltam e a
+    previsão. O planejamento programa a data, registra uma preventiva feita e, na implantação, informa a última de cada
+    equipamento (ou usa a sugestão pelo horímetro atual).
+  - **No painel:** o cartão mostra `PM` e a revisão em verde-água quando está próxima ou vencida. A operação abre o
+    equipamento e toca em **Mandar para preventiva**: só então ele entra na fila da manutenção (parada do tipo
+    preventiva). Quando a manutenção libera, a preventiva fica registrada no horímetro da parada e o contador recomeça.
 - **Transferir atendimento:** com o equipamento em manutenção (ou com peças solicitadas), a manutenção toca em
   **Transferir atendimento**, escolhe o novo técnico e, se quiser, escreve uma observação (ex.: troca de turno).
   A etapa e o tempo não mudam; a troca aparece nos eventos e na coluna "Responsáveis" dos relatórios.
 - **Quem pode o quê:** operação e manutenção fazem o fluxo normal, correções, cadastro de equipamentos e de usuários.
-  O planejamento cuida das peças (ordem de compra e chegada).
+  O planejamento cuida das peças (ordem de compra e chegada), dos planos de preventiva e dos horímetros.
   Só o administrador mexe em administradores, nas **Áreas**, nas configurações que valem para todas as telas e na aba **Dados**.
 
 ## Relatórios no Excel (Power Query)
 
 Na aba **Dados** (administrador) escolha a tabela, copie o código e cole no Excel em
 *Dados › Obter Dados › De Outras Fontes › Consulta Nula › Editor Avançado*. O botão **Atualizar Tudo**
-passa a buscar os dados direto do servidor. Tabelas: Paradas, Etapas, Correções, Peças, Equipamentos,
-Eventos (histórico completo) e Usuários. Detalhes e a opção de conexão direta ao banco (Power BI) em
+passa a buscar os dados direto do servidor. Tabelas: Paradas, Etapas, Correções, Peças, Leituras de horímetro,
+Preventivas feitas, Equipamentos, Eventos (histórico completo) e Usuários. Detalhes e a opção de conexão direta ao banco (Power BI) em
 [docs/POWER-QUERY.md](docs/POWER-QUERY.md).
 
 ## Atualizar o sistema

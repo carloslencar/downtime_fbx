@@ -30,7 +30,7 @@
       <div><h1>Quadro de Paradas<span class="marca-ofi" id="marca-ofi" hidden></span></h1><p>Operação × Manutenção · frota de mina</p></div>
     </div>
     <div class="ctrl">
-      <div class="seg nav" id="nav" role="group" aria-label="Seção"><button type="button" data-view="painel">Painel</button><button type="button" data-view="cadastro">Cadastro</button><button type="button" data-view="usuarios">Usuários</button><button type="button" data-view="pecas" id="nav-pecas" hidden>Peças</button><button type="button" data-view="dados" id="nav-dados" hidden>Dados</button><button type="button" data-view="config" aria-label="Configurações">Configurações</button></div>
+      <div class="seg nav" id="nav" role="group" aria-label="Seção"><button type="button" data-view="painel">Painel</button><button type="button" data-view="cadastro">Cadastro</button><button type="button" data-view="usuarios">Usuários</button><button type="button" data-view="pecas" id="nav-pecas" hidden>Peças</button><button type="button" data-view="preventivas" id="nav-prev" hidden>Preventivas</button><button type="button" data-view="dados" id="nav-dados" hidden>Dados</button><button type="button" data-view="config" aria-label="Configurações">Configurações</button></div>
       <span class="pill" id="sync" data-s="local"><i></i><span>Modo local</span></span>
       <div id="sessao"></div>
       <button type="button" class="bt ico" id="bt-qr" title="QR code de acesso pelo celular" aria-label="QR code de acesso pelo celular"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><path d="M9 9h2v2M13 9v5M9 13h2"/></svg><span>QR code</span></button>
@@ -60,7 +60,7 @@
       <button type="button" class="painel qrfix" id="qrfix" hidden aria-label="QR code de acesso pelo celular"><canvas id="qrfix-cv" width="120" height="120" aria-hidden="true"></canvas><span><b>Acesse pelo celular</b><small>Aponte a câmera para abrir o quadro e registrar paradas.</small></span></button>
       <section class="painel evs"><h3>Últimos eventos</h3><div class="lista" id="evs"></div></section>
       <div class="legenda">
-        <span data-c="operando"><i></i>Operando</span><span data-c="aguardando"><i></i>Aguardando</span><span data-c="em_manutencao"><i></i>Em manutenção</span><span data-c="aguardando_peca"><i></i>Peças solic.</span><span data-c="aguardando_entrega"><i></i>Aguard. peças</span><span data-c="pecas_recebidas"><i></i>Peças receb.</span><span data-c="liberado"><i></i>Liberado</span>
+        <span data-c="operando"><i></i>Operando</span><span data-c="aguardando"><i></i>Aguardando</span><span data-c="em_manutencao"><i></i>Em manutenção</span><span data-c="aguardando_peca"><i></i>Peças solic.</span><span data-c="aguardando_entrega"><i></i>Aguard. peças</span><span data-c="pecas_recebidas"><i></i>Peças receb.</span><span data-c="liberado"><i></i>Liberado</span><span data-c="pm"><i></i>Preventiva próxima</span>
       </div>
     </aside>
   </div>
@@ -159,6 +159,39 @@
     <p class="p-msg" id="p-msg" role="status" hidden></p>
     <div id="p-lista"></div>
   </div>
+  <div class="vista frm" id="v-prev" hidden>
+    <div class="pv-top">
+      <div class="seg pv-tabs" id="pv-tabs" role="group" aria-label="Seção de preventivas"><button type="button" data-pt="lista">Preventivas</button><button type="button" data-pt="hor">Horímetros</button><button type="button" data-pt="planos">Planos</button></div>
+      <p class="pv-sub" id="pv-sub"></p>
+    </div>
+    <div id="pv-lista-v" hidden>
+      <section class="kpis dk" id="pv-resumo" aria-label="Resumo das preventivas"></section>
+      <section class="painel p-barra">
+        <div class="seg" id="pv-filtro" role="group" aria-label="Mostrar"><button type="button" data-f="atencao">Precisam de atenção</button><button type="button" data-f="todas">Todas</button></div>
+        <input type="search" id="pv-busca" placeholder="Buscar TAG, frota ou plano" aria-label="Buscar equipamento">
+        <span class="sp"></span>
+        <button type="button" class="ghost-sm" id="pv-sugerir" hidden></button>
+      </section>
+      <p class="p-msg" id="pv-msg" role="status" hidden></p>
+      <section class="painel pv-tab" id="pv-tab"></section>
+    </div>
+    <div id="pv-hor-v" hidden>
+      <section class="painel hv-barra">
+        <div class="cp hv-coleta"><label for="hv-coleta">Data e hora da coleta</label><div class="hv-crow"><input type="datetime-local" id="hv-coleta" step="60"><button type="button" class="ghost-sm" id="hv-agora">Agora</button></div><span class="dica">Vale para todas as linhas. Se uma leitura foi feita em outro horário, use "outro horário" na linha dela.</span></div>
+        <div class="cp"><label for="hv-frota">Frota</label><select id="hv-frota"></select></div>
+        <div class="cp hv-bus"><label for="hv-busca">Buscar</label><input type="search" id="hv-busca" placeholder="TAG ou modelo" aria-label="Buscar equipamento"></div>
+        <div class="hv-acoes"><span class="hv-prog" id="hv-prog"></span><button type="button" class="ghost" id="hv-colar">Colar do Excel</button><button type="button" class="salvar" id="hv-salvar">Salvar leituras</button></div>
+      </section>
+      <p class="p-msg" id="hv-msg" role="status" hidden></p>
+      <section class="painel hv-tab" id="hv-tab"></section>
+    </div>
+    <div id="pv-planos-v" hidden>
+      <div class="cad-corpo">
+        <section class="painel"><div class="cad-bar"><span class="cad-n" id="pl-n"></span><span class="sp"></span><button type="button" class="novo" id="pl-novo">+ Novo plano</button></div><div id="pl-lista" class="pl-lista2"></div></section>
+        <section class="painel cad-form" id="pl-form" aria-label="Plano de preventiva"></section>
+      </div>
+    </div>
+  </div>
   <div class="vista" id="v-lock" hidden>
     <section class="painel lock">
       <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="18" width="24" height="17" rx="3"/><path d="M13 18v-5a7 7 0 0 1 14 0v5"/><circle cx="20" cy="26" r="2" fill="currentColor"/></svg>
@@ -191,7 +224,7 @@
           <li>Repita para cada tabela que quiser usar nos relatórios.</li>
           <li>Para atualizar, clique em Dados, Atualizar Tudo. O Excel busca os dados direto do servidor, sem baixar arquivo.</li>
         </ol>
-        <div class="cp"><label for="d-pq-tab">Tabela</label><select id="d-pq-tab"><option value="paradas">Paradas</option><option value="etapas">Etapas</option><option value="correcoes">Correções</option><option value="pecas">Peças</option><option value="equipamentos">Equipamentos</option><option value="eventos">Eventos (histórico completo)</option><option value="usuarios">Usuários</option></select></div>
+        <div class="cp"><label for="d-pq-tab">Tabela</label><select id="d-pq-tab"><option value="paradas">Paradas</option><option value="etapas">Etapas</option><option value="correcoes">Correções</option><option value="pecas">Peças</option><option value="leituras">Leituras de horímetro</option><option value="preventivas">Preventivas feitas</option><option value="equipamentos">Equipamentos</option><option value="eventos">Eventos (histórico completo)</option><option value="usuarios">Usuários</option></select></div>
         <div class="mcode"><div class="mh"><span>Consulta da tabela <b id="d-m-tab"></b></span><button type="button" id="d-copiar">Copiar código</button></div><pre id="d-m"></pre></div>
         <div class="cp"><label for="d-link">Link direto da tabela (CSV)</label><input type="text" id="d-link" readonly spellcheck="false"></div>
         <p class="nota">O código e o link levam a chave de acesso aos relatórios: quem tiver a chave consegue ler os dados. Compartilhe só com quem monta os relatórios. <button type="button" class="lnk" id="d-chave">Gerar nova chave</button></p>
@@ -235,6 +268,7 @@
 <div class="modal" id="areas" hidden><div class="dlg arsd" id="areas-dlg" role="dialog" aria-modal="true" aria-labelledby="areas-t"></div></div>
 <div class="modal" id="qr" hidden><div class="dlg qrd" id="qr-dlg" role="dialog" aria-modal="true" aria-labelledby="qr-t"></div></div>
 <div class="modal" id="login" hidden><div class="dlg login" id="login-dlg" role="dialog" aria-modal="true" aria-labelledby="login-t"></div></div>
+<div class="modal" id="hv-colar-m" hidden><div class="dlg arsd" id="hv-colar-dlg" role="dialog" aria-modal="true" aria-labelledby="hv-colar-t"></div></div>
 <div class="modal" id="modal" hidden><div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t"></div></div>
 
 <script src="vendor/qrcode.js"></script>
@@ -244,6 +278,7 @@
 <script src="js/oficinas.js"></script>
 <script src="js/app.js"></script>
 <script src="js/pecas.js"></script>
+<script src="js/preventivas.js"></script>
 <script src="js/alarme.js"></script>
 </body>
 </html>

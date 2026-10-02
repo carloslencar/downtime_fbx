@@ -70,3 +70,31 @@ test('peças: manutenção pede, planejamento informa OC e chegada, operação n
   assert.equal(verificar({ usuario: plan, col: 'pecas', id: 'X_1_a', op: 'delete', anterior: nova }).status, 403);
   assert.equal(verificar({ usuario: man, col: 'pecas', id: 'X_1_a', op: 'set', novo: { ...nova, descricao: ' ' } }).status, 400);
 });
+
+test('horímetro e preventivas: só planejamento e administrador', () => {
+  const plan = { id: 'u5', perfil: 'planejador' }, op = { id: 'u1', perfil: 'operacao' }, man = { id: 'u3', perfil: 'manutencao' };
+  const lei = { tag: 'ADT-01', valor: 100, capturadaEm: Date.now() - 1000 };
+  assert.equal(verificar({ usuario: plan, col: 'leituras', id: 'ADT-01_1', op: 'set', novo: lei }), null);
+  assert.equal(verificar({ usuario: op, col: 'leituras', id: 'ADT-01_1', op: 'set', novo: lei }).status, 403);
+  assert.equal(verificar({ usuario: man, col: 'leituras', id: 'ADT-01_1', op: 'delete' }).status, 403);
+  assert.equal(verificar({ usuario: plan, col: 'leituras', id: 'ADT-01_1', op: 'set', novo: { ...lei, capturadaEm: Date.now() + 3600000 } }).status, 400);
+  assert.equal(verificar({ usuario: plan, col: 'leituras', id: 'ADT-01_1', op: 'set', novo: { ...lei, valor: '' } }).status, 400);
+  assert.equal(verificar({ usuario: plan, col: 'config', id: 'planos', op: 'set', novo: { lista: [{ nome: 'A', intervalos: [250, 500] }] } }), null);
+  assert.equal(verificar({ usuario: plan, col: 'config', id: 'planos', op: 'set', novo: { lista: [{ nome: 'A', intervalos: [250, 600] }] } }).status, 400);
+  assert.equal(verificar({ usuario: man, col: 'config', id: 'planos', op: 'set', novo: { lista: [] } }).status, 403);
+  assert.equal(verificar({ usuario: plan, col: 'preventivas', id: 'ADT-01', op: 'set', novo: { tag: 'ADT-01', historico: [] } }), null);
+  assert.equal(verificar({ usuario: op, col: 'preventivas', id: 'ADT-01', op: 'set', novo: { tag: 'ADT-01', historico: [] } }).status, 403);
+  assert.equal(verificar({ usuario: plan, col: 'preventivas', id: 'ADT-01', op: 'delete' }).status, 403);
+});
+
+test('horímetro derivado: a coleta mais recente vale, mesmo lançada antes', () => {
+  const { validarLeitura, derivarHorimetro } = require('../src/docs');
+  const D = 86400000;
+  const l = [{ id: 'a', v: 1000, t: 0 }, { id: 'b', v: 1020, t: D }, { id: 'c', v: 1040, t: 2 * D }];
+  assert.deepEqual(derivarHorimetro(l), { horimetro: 1040, horimetroEm: 2 * D, horimetroMedia: 20 });
+  assert.equal(validarLeitura(l, 1.5 * D, 1030), null);
+  assert.match(validarLeitura(l, 1.5 * D, 1010), /menor/);
+  assert.match(validarLeitura(l, 1.5 * D, 1050), /maior/);
+  assert.equal(derivarHorimetro([]), null);
+  assert.equal(derivarHorimetro([{ id: 'a', v: 5, t: 0 }]).horimetroMedia, null);
+});

@@ -224,6 +224,7 @@ async function iniciar() {
   await seed.importarInicial();
   await seed.recuperarAdmin();
   await docs.numerarParadas();
+  await docs.leiturasIniciais();
   const srv = criarServidor();
   srv.keepAliveTimeout = 65000;
   await new Promise(ok => srv.listen(config.porta, ok));

@@ -49,7 +49,7 @@ $$ select case s
     when 'admin'      then 'Administrador'
     else s end $$;
 
-drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas, vw_pecas, vw_oficinas cascade;
+drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas, vw_pecas, vw_oficinas, vw_leituras, vw_preventivas cascade;
 
 create view vw_oficinas as
 select o->>'id' as oficina_id, o->>'nome' as oficina
@@ -76,6 +76,7 @@ select e.id                           as tag,
        dt_num(e.dados->>'ano')::int   as ano,
        dt_num(e.dados->>'horimetro')  as horimetro,
        dt_ts(dt_ms(e.dados->>'horimetroEm')) as horimetro_em,
+       dt_num(e.dados->>'horimetroMedia') as media_h_dia,
        dt_status(e.dados->>'status')  as situacao_atual,
        dt_ts(dt_ms(e.dados->>'desde')) as situacao_desde,
        coalesce((e.dados->>'ativo')::boolean, true) as no_painel
@@ -113,7 +114,9 @@ select p.id                                   as parada_id,
        nullif(p.dados->'etapas'->0->>'por', '') as aberta_por,
        (select string_agg(r->>'tecnico', ' → ' order by n)
           from jsonb_array_elements(coalesce(p.dados->'responsaveis', '[]'::jsonb)) with ordinality as x(r, n)) as responsaveis,
-       greatest(jsonb_array_length(coalesce(p.dados->'responsaveis', '[]'::jsonb)) - 1, 0) as transferencias
+       greatest(jsonb_array_length(coalesce(p.dados->'responsaveis', '[]'::jsonb)) - 1, 0) as transferencias,
+       case when p.dados->>'tipo' = 'preventiva' then 'Preventiva' else 'Corretiva' end as tipo_parada,
+       nullif(p.dados->'pm'->>'nome', '')     as preventiva
 from p
 left join vw_equipamentos eq on eq.tag = p.dados->>'tag'
 left join vw_oficinas op on op.oficina_id = nullif(p.dados->>'oficina', '');
@@ -201,3 +204,37 @@ select i.id                                   as item_id,
 from docs i
 left join vw_equipamentos eq on eq.tag = i.dados->>'tag'
 where i.colecao = 'pecas';
+
+-- Leituras de horímetro: uma linha por leitura, com a hora da coleta e a hora do lançamento.
+create view vw_leituras as
+select l.dados->>'tag'                        as tag,
+       eq.oficina,
+       eq.frota,
+       dt_num(l.dados->>'valor')              as horimetro,
+       dt_ts(dt_ms(l.dados->>'capturadaEm'))  as coletada_em,
+       dt_ts(dt_ms(l.dados->>'lancadaEm'))    as lancada_em,
+       nullif(l.dados->>'lancadaPor', '')     as lancada_por,
+       case l.dados->>'origem'
+         when 'diaria' then 'Lançamento diário' when 'parada' then 'Parada' when 'cadastro' then 'Cadastro'
+         when 'correcao' then 'Correção' when 'inicial' then 'Leitura inicial' else l.dados->>'origem' end as origem
+from docs l
+left join vw_equipamentos eq on eq.tag = l.dados->>'tag'
+where l.colecao = 'leituras';
+
+-- Preventivas feitas: uma linha por preventiva registrada (pela liberação da parada ou pelo planejamento).
+create view vw_preventivas as
+select p.id                                   as tag,
+       eq.oficina,
+       eq.frota,
+       nullif(h->>'nome', '')                 as preventiva,
+       dt_num(h->>'pos')::int                 as posicao_ciclo,
+       dt_num(h->>'horimetro')                as horimetro,
+       dt_ts(dt_ms(h->>'em'))                 as data,
+       dt_num(h->>'numero')::int              as parada_numero,
+       nullif(h->>'paradaId', '')             as parada_id,
+       case h->>'origem' when 'parada' then 'Parada liberada' else 'Registro do planejamento' end as origem,
+       nullif(h->>'por', '')                  as registrado_por
+from docs p
+cross join lateral jsonb_array_elements(coalesce(p.dados->'historico', '[]'::jsonb)) h
+left join vw_equipamentos eq on eq.tag = p.id
+where p.colecao = 'preventivas';

@@ -30,12 +30,22 @@ Cada registro é um documento JSON na tabela `docs`, identificado por `(colecao,
 | `paradas` | `TAG_inicioMs` | número sequencial (`numero`), responsáveis `[{tecnico,de,t,por,nota}]` (transferências), motivo, observação, técnico, início, fim, horímetros, etapas `[{status,t,por}]`, correções `[{t,por,just,campo,de,para}]`, cancelada |
 | `pecas` | `idDaParada_p…` | peça solicitada: paradaId, número da parada, TAG, descrição, código, quantidade, quem pediu, ordem de compra (`oc`), chegada (`chegou`, `chegouEm`, `chegouPor`), cancelada |
 | `usuarios` | `u` + matrícula | nome, nome curto, matrícula, perfil (`operacao`, `manutencao`, `planejador`, `admin`), oficina (mecânicos), ativo |
-| `config` | `frotas`, `areas`, `oficinas`, `opcoes` | frotas do painel, áreas, oficinas `[{id,nome}]`, opções do horímetro e do QR code |
+| `leituras` | `TAG_capturadaEmMs` | leitura de horímetro: valor, `capturadaEm` (hora da coleta), `lancadaEm`/`lancadaPor`, origem (`diaria`, `parada`, `cadastro`, `correcao`, `inicial`) |
+| `preventivas` | TAG | `historico [{pos, nome, horimetro, em, paradaId, numero, origem, por}]` das preventivas feitas e `programada` (AAAA-MM-DD) |
+| `config` | `frotas`, `areas`, `oficinas`, `opcoes`, `planos` | frotas do painel, áreas, oficinas `[{id,nome}]`, opções do horímetro e do QR code, planos de preventiva `[{id,nome,intervalos,aviso,frotas}]` |
 | `log` | `feed` | 40 eventos mais recentes mostrados no painel |
 
 Tabelas de apoio: `credenciais` (hash do PIN), `sessoes`, `eventos` (histórico completo de lançamentos),
 `historico` (cada gravação com o usuário que fez), `meta` (chave de relatórios, controle da importação),
 `migracoes`.
+
+Horímetro: o servidor guarda cada leitura com a hora da coleta e mantém no equipamento `horimetro`, `horimetroEm`
+(a coleta mais recente, não a última digitada) e `horimetroMedia` (h/dia nos últimos 30 dias). Uma leitura precisa
+caber entre a anterior e a seguinte. Leituras digitadas no quadro chegam no campo `horLeitura` do equipamento.
+
+Preventivas: a parada aberta por "Mandar para preventiva" tem `tipo: 'preventiva'` e `pm {pos, nome}`. Ao gravar a
+parada com a etapa `liberado`, o servidor acrescenta a preventiva ao histórico do equipamento (e tira se a liberação for
+desfeita ou a parada cancelada). A próxima revisão é calculada na tela: última + menor intervalo do plano.
 
 Situações de um equipamento: `operando` › `aguardando` › `em_manutencao` › `aguardando_peca` (Peças solicitadas)
 › `aguardando_entrega` (Aguardando peças) › `pecas_recebidas` (Peças recebidas) › `em_manutencao` › `liberado` › `operando`.

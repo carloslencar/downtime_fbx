@@ -116,6 +116,7 @@ function render(){
       if(e.status==='operando'){tm.removeAttribute('data-desde');tm.textContent='';}else{tm.dataset.desde=e.desde;}
       b.title=e.status==='operando'?tag+' · Operando':`${tag} · ${ST[e.status].rot} · ${e.motivo}${e.obs?' — '+e.obs:''}`;
       b.setAttribute('aria-label',b.title);
+      if(typeof marcarPM==='function')marcarPM(b,e);
       const ft=document.getElementById('ft-'+tag);if(ft){ft.dataset.st=e.status;ft.style.background=`var(--${COR[e.status]})`;}
     }
     const gn=document.querySelector(`[data-gn="${CSS.escape(f.id)}"]`);if(gn)gn.innerHTML=`<b>${ok}</b>/${tg.length} operando`;
@@ -186,7 +187,7 @@ async function gravar(tag,novoEq,parada,evento){
       if(novoEq)await db.doc('equipamentos/'+tag).set(novoEq);
       if(parada)await db.doc('paradas/'+parada.id).set(parada);
       await db.doc('log/feed').set({eventos:[evento,...eventos].slice(0,40)});
-    }catch(e){toastErro(e&&e.status===401?'Entre com seu usuário de novo':e&&e.code==='invalid_argument'?'Seu acesso não permite alterar o quadro':'Não foi possível salvar a mudança');return false;}
+    }catch(e){toastErro(e&&e.status===401?'Entre com seu usuário de novo':e&&e.code==='invalid_argument'?'Seu acesso não permite alterar o quadro':e&&e.status===400?e.message:'Não foi possível salvar a mudança');return false;}
     finally{gravando=false;}
     if(parada)paradas[parada.id]=parada;
     return true;
@@ -203,6 +204,7 @@ async function aplicar(a,tag,patch,ev){
   let par;
   if(a==='abrir'){
     par={id:tag+'_'+now,tag,oficina:atual.oficina||'',inicio:now,fim:null,motivo:patch.motivo,obs:patch.obs||'',tecnico:'',horIni:ev.hor??null,horFim:null,cancelada:false,etapas:[{status:'aguardando',t:now,por:ev.por}],correcoes:[]};
+    if(patch.preventiva){par.tipo='preventiva';par.pm=patch.preventiva;}
     novo.paradaId=par.id;
   }else{
     par=paradaAtual(atual)||paradaNova(atual);novo.paradaId=par.id;
@@ -227,11 +229,11 @@ async function aplicar(a,tag,patch,ev){
 
 function quemManut(e){const u=usuarioAtual();return u&&u.perfil==='manutencao'?u.curto:(e.tecnico||(u?u.curto:''));}
 const ACOES={
-  abrir:(e,d)=>aplicar('abrir',e.tag,{status:'aguardando',motivo:d.motivo,obs:d.obs||'',tecnico:'',inicioParada:Date.now(),...horPatch(d)},{por:'Operação'+nomeSessao(),detalhe:d.motivo+(d.obs?' · '+d.obs:'')+horTxt(d),hor:d.hor??null}),
+  abrir:(e,d)=>aplicar('abrir',e.tag,{status:'aguardando',motivo:d.motivo,obs:d.obs||'',tecnico:'',inicioParada:Date.now(),preventiva:d.motivo==='Preventiva'&&typeof pmPadrao==='function'?pmPadrao(e):null,...horPatch(d)},{por:'Operação'+nomeSessao(),detalhe:d.motivo+(d.obs?' · '+d.obs:'')+horTxt(d),hor:d.hor??null}),
   assumir:(e,d)=>aplicar('assumir',e.tag,{status:'em_manutencao',tecnico:d.tecnico},{por:'Manutenção · '+d.tecnico,detalhe:e.motivo}),
   retomar:(e)=>aplicar('retomar',e.tag,{status:'em_manutencao'},{acao:'Atendimento retomado',por:'Manutenção · '+quemManut(e),detalhe:e.motivo}),
   liberar:(e,d)=>aplicar('liberar',e.tag,{status:'liberado',obs:d.obs||e.obs,...horPatch(d)},{por:'Manutenção · '+quemManut(e),detalhe:(d.obs||e.motivo)+horTxt(d),hor:d.hor??null}),
-  receber:(e)=>aplicar('receber',e.tag,{status:'operando',motivo:'',obs:'',tecnico:'',inicioParada:0},{por:'Operação'+nomeSessao(),detalhe:'Parado por '+dur(Date.now()-(e.inicioParada||e.desde))})
+  receber:(e)=>aplicar('receber',e.tag,{status:'operando',motivo:'',obs:'',tecnico:'',inicioParada:0,preventiva:null},{por:'Operação'+nomeSessao(),detalhe:'Parado por '+dur(Date.now()-(e.inicioParada||e.desde))})
 };
 
 function podeDesfazer(e){
@@ -278,7 +280,7 @@ function renderModal(){
     const ua=e.ultAcao;
     desf=`<div class="desf"><span>Último lançamento: <b>${esc(NOME_ACAO[ua.a]||ua.a)}</b> · ${esc(ua.nome||PAPEL_NOME[ua.papel]||'')} às ${hhmm(ua.t)} · dá para desfazer até ${hhmm(ua.t+JANELA_DESFAZER)}</span><button type="button" class="${aberto.confDesf?'conf':''}" data-acao="desfazer">${aberto.confDesf?'Confirmar desfazer':'Desfazer'}</button></div>`;
   }
-  dlg.innerHTML=`<div class="d-h">${icone(e.tipo)}<div><h2 id="dlg-t">${esc(e.tag)}</h2><p>${esc(f.nome)} · ${esc(e.modelo||'')}${e.horimetro?' · '+fmtH(e.horimetro):''}</p></div><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>${aberto.msg?`<p class="okmsg" tabindex="-1" role="status" data-c="${esc(aberto.msg.c)}"><i aria-hidden="true">✓</i>${esc(aberto.msg.txt)}</p>`:''}${st}${desf}${acoesHtml(e)}${hist.length&&!aberto.modo?`<div class="fs"><span class="lb">Histórico recente</span><div class="hist">${hist.map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${dataHora(v.t)}</time><span><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join('')}</div></div>`:''}`;
+  dlg.innerHTML=`<div class="d-h">${icone(e.tipo)}<div><h2 id="dlg-t">${esc(e.tag)}</h2><p>${esc(f.nome)} · ${esc(e.modelo||'')}${e.horimetro?' · '+fmtH(e.horimetro):''}</p></div><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>${aberto.msg?`<p class="okmsg" tabindex="-1" role="status" data-c="${esc(aberto.msg.c)}"><i aria-hidden="true">✓</i>${esc(aberto.msg.txt)}</p>`:''}${st}${!aberto.modo&&typeof pmModalHtml==='function'?pmModalHtml(e):''}${desf}${acoesHtml(e)}${hist.length&&!aberto.modo?`<div class="fs"><span class="lb">Histórico recente</span><div class="hist">${hist.map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${dataHora(v.t)}</time><span><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join('')}</div></div>`:''}`;
   tick();
 }
 
@@ -326,6 +328,7 @@ function acoesHtml(e){
   if(!papel)return `<p class="nota">Entre com seu usuário para registrar ações neste equipamento.</p><div class="acoes"><button type="button" class="go" style="--k:var(--glass)" data-acao="login">Entrar</button></div>`;
   if(aberto.modo==='pecas')return formPecasHtml(e);
   if(aberto.modo==='transf')return formTransfHtml(e);
+  if(aberto.modo==='pm')return formPMHtml(e);
   if(aberto.modo)return supervisorHtml(e);
   if(papel==='admin')return respHtml(e)+listaPecasModal(e)+'<p class="nota">Como administrador, você corrige lançamentos. Abrir, atender e liberar ficam com a operação e a manutenção.</p>'+supervisorHtml(e);
   if(papel==='planejador')return acoesPlanejamento(e);
@@ -421,7 +424,7 @@ async function salvarCorrecao(e,fechada){
   if(!mud.length)return erroCorr('Nenhum campo foi alterado.');
   const novo={...semAnterior(e),motivo:v._m,obs:(v['c-obs']||'').trim(),anterior:null,ultAcao:null};
   if(v['c-tec']!==undefined)novo.tecnico=v['c-tec'];
-  if(ini!==iniA)novo.inicioParada=ini;if(et!==etA)novo.desde=et;if(String(hor)!==String(e.horimetro??''))novo.horimetro=hor;
+  if(ini!==iniA)novo.inicioParada=ini;if(et!==etA)novo.desde=et;if(String(hor)!==String(e.horimetro??'')){novo.horimetro=hor;if(hor!=='')novo.horLeitura={valor:hor,em:now,origem:'correcao'};}
   const p=paradaAtual(e)||paradaNova(e);novo.paradaId=p.id;
   p.motivo=novo.motivo;p.obs=novo.obs;p.tecnico=novo.tecnico||'';p.inicio=novo.inicioParada||p.inicio;
   if(et!==etA&&p.etapas.length)p.etapas[p.etapas.length-1].t=et;
@@ -441,7 +444,7 @@ async function cancelarParada(e,fechada){
   }
   const p=paradaAtual(e)||paradaNova(e);
   p.cancelada=true;p.fim=now;p.correcoes=[...(p.correcoes||[]),{t:now,por:PAPEL_NOME[papel]+nomeSessao(),just,campo:'Parada',de:'aberta',para:'cancelada'}];
-  const novo={...semAnterior(e),status:'operando',motivo:'',obs:'',tecnico:'',inicioParada:0,desde:now,paradaId:'',anterior:null,ultAcao:null};
+  const novo={...semAnterior(e),status:'operando',motivo:'',obs:'',tecnico:'',inicioParada:0,desde:now,paradaId:'',preventiva:null,anterior:null,ultAcao:null};
   return gravar(e.tag,novo,p,{t:now,tag:e.tag,status:'correcao',acao:'Parada cancelada',por:PAPEL_NOME[papel]+nomeSessao(),detalhe:`${e.motivo} · ${just}`});
 }
 
@@ -455,6 +458,7 @@ $('#dlg').addEventListener('click',async ev=>{
   if(modos[a]){aberto.modo=modos[a];aberto.err='';aberto.msg=null;renderModal();const f=$('#dlg .corr input');if(f)f.focus();return;}
   if(a==='voltar'){aberto.modo=null;aberto.err='';renderModal();return;}
   if(await cliquePecasModal(a,t,e))return;
+  if(typeof cliquePMModal==='function'&&await cliquePMModal(a,t,e))return;
   if(a==='modoTransf'){aberto.modo='transf';aberto.err='';aberto.msg=null;renderModal();const s=$('#t-tec');if(s)s.focus();return;}
   if(a==='confTransf'){
     const novoTec=$('#t-tec').value,nota=$('#t-nota').value.trim();
@@ -539,6 +543,7 @@ function aplicarSessao(){
   renderSessao();
   $('#nav-dados').hidden=!ehAdmin();
   $('#nav-pecas').hidden=!usuarioAtual();
+  $('#nav-prev').hidden=!usuarioAtual();
   if(vista==='cadastro'&&fd&&$('#f-area')){lerForm();renderForm();}
   if(aberto){aberto.modo=null;aberto.err='';aberto.confDesf=false;renderModal();}
   if(vista)setVista(vista);
@@ -762,7 +767,8 @@ function setSync(s){const el=$('#sync');el.dataset.s=s;
 /* ---------- Cadastro ---------- */
 /* ---------- Horímetro e configurações ---------- */
 let opcoes={horimetroParadas:false,horObrig:true,horSalto:500};
-function horPatch(d){return d.hor!=null?{horimetro:d.hor,horimetroEm:Date.now()}:{}}
+// A leitura digitada no quadro vai como "horLeitura": o servidor guarda nas leituras e calcula o horímetro do equipamento.
+function horPatch(d){const t=Date.now();return d.hor!=null?{horimetro:d.hor,horimetroEm:t,horLeitura:{valor:d.hor,em:t,origem:'parada'}}:{}}
 function horTxt(d){return d.hor!=null?' · Horímetro '+Number(d.hor).toLocaleString('pt-BR')+' h':''}
 function horCampo(e){
   if(!opcoes.horimetroParadas)return '';
@@ -945,6 +951,7 @@ async function salvar(){
   const tag=editando||fd.tag;
   const base=editando?equip[editando]:{status:'operando',motivo:'',obs:'',tecnico:'',desde:Date.now(),inicioParada:0};
   const doc={...base,tag,grupo,tipo:fd.tipo,porte:fd.tipo==='escavadeira'?fd.porte:'',modelo:fd.modelo.trim(),area:fd.area.trim(),oficina:fd.oficina||'',horimetro:fd.horimetro===''?'':Number(fd.horimetro),ano:fd.ano===''?'':Number(fd.ano),serie:fd.serie.trim(),ativo:fd.ativo};
+  if(doc.horimetro!==''&&String(doc.horimetro)!==String(editando?equip[editando].horimetro??'':''))doc.horLeitura={valor:doc.horimetro,em:Date.now(),origem:'cadastro'};
   const eraNovo=!editando;
   salvando=true;
   try{
@@ -957,7 +964,7 @@ async function salvar(){
       if(novasFrotas)frotas=novasFrotas;
       equip[tag]=doc;
     }
-  }catch(err){errs={geral:err&&err.code==='invalid_argument'?'Seu acesso não permite alterar o cadastro.':'Não foi possível salvar. Tente de novo.'};salvando=false;renderForm();return;}
+  }catch(err){errs={geral:err&&err.code==='invalid_argument'?'Seu acesso não permite alterar o cadastro.':err&&err.status===400?err.message:'Não foi possível salvar. Tente de novo.'};salvando=false;renderForm();return;}
   salvando=false;
   toast({tag,status:'operando',acao:eraNovo?'Equipamento cadastrado':'Cadastro atualizado',por:'Cadastro',detalhe:doc.modelo+(doc.ativo?'':' · fora do painel'),t:Date.now()});
   editando=tag;errs={};confRm=false;fd=fdDe(doc);
@@ -1131,8 +1138,8 @@ function montarTabelas(lista){
   const ps=lista.filter(p=>p.inicio>=de&&p.inicio<=ate).sort((a,b)=>b.inicio-a.inicio);
   const eqInfo=tag=>{const e=equip[tag]||{};return {frota:(frotaDe(e.grupo)||{}).nome||'',tipo:(TIPO[e.tipo]||{}).nome||''};};
   const T={};
-  T.Paradas={cols:['ID','Nº','TAG','Oficina','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções','Responsáveis'],tipos:['s','n','s','s','s','s','s','s','d','d','n','s','s','n','n','n','s'],
-    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.numero??null,p.tag,nomeOficina(p.oficina||(equip[p.tag]||{}).oficina),i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length,(p.responsaveis||[]).map(r=>r.tecnico).join(' → ')||p.tecnico||''];})};
+  T.Paradas={cols:['ID','Nº','TAG','Oficina','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções','Responsáveis','Tipo de parada'],tipos:['s','n','s','s','s','s','s','s','d','d','n','s','s','n','n','n','s','s'],
+    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.numero??null,p.tag,nomeOficina(p.oficina||(equip[p.tag]||{}).oficina),i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length,(p.responsaveis||[]).map(r=>r.tecnico).join(' → ')||p.tecnico||'',p.tipo==='preventiva'?'Preventiva'+(p.pm&&p.pm.nome?' · '+p.pm.nome:''):'Corretiva'];})};
   const et=[];
   for(const p of ps){const es=(p.etapas||[]).slice().sort((a,b)=>a.t-b.t);es.forEach((s,k)=>{if(s.status==='operando')return;const fim=k+1<es.length?es[k+1].t:(p.fim||null);et.push([p.id,p.tag,(ST[s.status]||{rot:s.status}).rot,s.t,fim,horas((fim||now)-s.t),s.por||'',p.cancelada?'Sim':'Não']);});}
   T.Etapas={cols:['Parada','TAG','Etapa','Início','Fim','Duração (h)','Registrado por','Parada cancelada'],tipos:['s','s','s','d','d','n','s','s'],rows:et};
@@ -1429,27 +1436,28 @@ $('#cad-form').addEventListener('click',ev=>{if(ev.target.closest('#f-areas-ger'
 
 function setVista(v){
   vista=v;
-  const bloq=(v==='cadastro'&&!podeGerir())||(v==='usuarios'&&!podeUsuarios())||(v==='dados'&&!ehAdmin())||(v==='pecas'&&!usuarioAtual());
-  $('#v-painel').hidden=v!=='painel';$('#v-cad').hidden=v!=='cadastro'||bloq;$('#v-cfg').hidden=v!=='config';$('#v-usr').hidden=v!=='usuarios'||bloq;$('#v-dados').hidden=v!=='dados'||bloq;$('#v-pecas').hidden=v!=='pecas'||bloq;$('#v-lock').hidden=!bloq;
+  const bloq=(v==='cadastro'&&!podeGerir())||(v==='usuarios'&&!podeUsuarios())||(v==='dados'&&!ehAdmin())||(v==='pecas'&&!usuarioAtual())||(v==='preventivas'&&!usuarioAtual());
+  $('#v-painel').hidden=v!=='painel';$('#v-cad').hidden=v!=='cadastro'||bloq;$('#v-cfg').hidden=v!=='config';$('#v-usr').hidden=v!=='usuarios'||bloq;$('#v-dados').hidden=v!=='dados'||bloq;$('#v-pecas').hidden=v!=='pecas'||bloq;$('#v-prev').hidden=v!=='preventivas'||bloq;$('#v-lock').hidden=!bloq;
   document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===v)));
   {const nb=document.querySelector(`#nav [data-view="${v}"]`),nv=$('#nav');if(nb&&nv.scrollWidth>nv.clientWidth){const l=nb.offsetLeft-nv.offsetLeft;if(l<nv.scrollLeft||l+nb.offsetWidth>nv.scrollLeft+nv.clientWidth)nv.scrollLeft=l-12;}}
   try{history.replaceState(null,'','#'+v);}catch(e){}
   if(bloq){
-    $('#lock-t').textContent=v==='usuarios'?'Usuários':v==='dados'?'Dados':v==='pecas'?'Peças':'Cadastro de equipamentos';
-    $('#lock-p').textContent=v==='pecas'?'Entre com seu usuário para ver as solicitações de peças.':v==='usuarios'?'Entre com seu usuário para gerenciar usuários.':v==='dados'?'Só o administrador acessa os dados e as exportações.':'Entre com seu usuário para cadastrar equipamentos.';
+    $('#lock-t').textContent=v==='usuarios'?'Usuários':v==='dados'?'Dados':v==='pecas'?'Peças':v==='preventivas'?'Preventivas':'Cadastro de equipamentos';
+    $('#lock-p').textContent=v==='preventivas'?'Entre com seu usuário para ver as preventivas e lançar os horímetros.':v==='pecas'?'Entre com seu usuário para ver as solicitações de peças.':v==='usuarios'?'Entre com seu usuário para gerenciar usuários.':v==='dados'?'Só o administrador acessa os dados e as exportações.':'Entre com seu usuário para cadastrar equipamentos.';
     $('#lock-entrar span').textContent=usuarioAtual()?'Trocar de usuário':'Entrar';
     return;
   }
   if(v==='cadastro'){if(!fd)novo();renderCad();}
   if(v==='config')renderCfg();
   if(v==='pecas')renderPecas();
+  if(v==='preventivas'&&typeof renderPrev==='function')renderPrev();
   if(v==='usuarios')renderUsr();
   if(v==='dados')renderDados(true);
   agendarAjuste();
 }
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>setVista(b.dataset.view)));
 
-montarFrota(estrutura());vista=({'#cadastro':'cadastro','#config':'config','#usuarios':'usuarios','#dados':'dados','#pecas':'pecas'})[location.hash]||'painel';aplicarSessao();render();setInterval(tick,1000);
+montarFrota(estrutura());vista=({'#cadastro':'cadastro','#config':'config','#usuarios':'usuarios','#dados':'dados','#pecas':'pecas','#preventivas':'preventivas'})[location.hash]||'painel';aplicarSessao();render();setInterval(tick,1000);
 
 (async()=>{
   db=window.dt.db;mode='db';setSync('conectando');

@@ -59,6 +59,12 @@ Os navegadores só liberam som depois que alguém toca na tela. Se aparecer no c
 quiosque com a opção `--autoplay-policy=no-user-gesture-required` (já incluída nos atalhos abaixo e acima).
 Lembre de deixar o som da TV ligado e com volume.
 
+## Preventivas no painel
+
+Quando a preventiva de um equipamento está próxima (dentro do aviso do plano) ou vencida, o cartão ganha o selo `PM` e
+mostra a revisão e as horas que faltam em verde-água (vencida: selo cheio e borda). A legenda do painel inclui
+"Preventiva próxima".
+
 ## Comportamento
 
 - O painel se encaixa sozinho na tela: toda a frota aparece sem rolar, em qualquer resolução ou

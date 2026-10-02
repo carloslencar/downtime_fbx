@@ -14,11 +14,13 @@ os dados novos.
 
 | Tabela | Uma linha por | Campos principais |
 |--------|---------------|-------------------|
-| Paradas | parada | ID, Nº, TAG, Oficina, Frota, Tipo, Área, Motivo, Início, Fim, Duração (h), Situação, Técnico, Horímetros |
+| Paradas | parada | ID, Nº, TAG, Oficina, Frota, Tipo, Área, Motivo, Início, Fim, Duração (h), Situação, Técnico, Horímetros, Tipo de parada (Corretiva/Preventiva), Preventiva |
 | Etapas | etapa de cada parada | Parada, TAG, Etapa (aguardando, em manutenção, peças solicitadas, aguardando peças, peças recebidas, liberado), Início, Fim, Duração (h) |
 | Correções | correção ou cancelamento | Parada, Data, Por, Campo, De, Para, Justificativa |
 | Peças | peça solicitada | Parada nº, TAG, Peça, Código, Quantidade, Solicitada em/por, Ordem de compra, Chegou em, Espera (h), Situação |
-| Equipamentos | equipamento | TAG, Oficina, Frota, Tipo, Porte, Modelo, Área, Ano, Horímetro, Situação atual |
+| Leituras | leitura de horímetro | TAG, Oficina, Frota, Horímetro, Coletada em, Lançada em, Lançada por, Origem |
+| Preventivas | preventiva feita | TAG, Oficina, Frota, Preventiva (PM 250…), Horímetro, Data, Parada nº, Origem |
+| Equipamentos | equipamento | TAG, Oficina, Frota, Tipo, Porte, Modelo, Área, Ano, Horímetro, Leitura do horímetro, Média (h/dia), Situação atual |
 | Eventos | lançamento (histórico completo) | Data, TAG, Situação, Ação, Por, Detalhe, Horímetro |
 | Usuários | usuário | Matrícula, Nome, Perfil, Oficina, Ativo (nunca o PIN) |
 
@@ -48,6 +50,8 @@ Esse usuário só lê as views (não enxerga PINs nem tabelas internas):
 | `vw_etapas` | cada etapa de cada parada, com início, fim e duração |
 | `vw_correcoes` | correções e cancelamentos com justificativa |
 | `vw_pecas` | peças solicitadas, ordem de compra, chegada e tempo de espera |
+| `vw_leituras` | leituras de horímetro com a hora da coleta e a do lançamento |
+| `vw_preventivas` | preventivas feitas (pela liberação da parada ou registradas pelo planejamento) |
 | `vw_equipamentos` | cadastro e situação atual |
 | `vw_eventos` | todos os eventos lançados (histórico completo) |
 | `vw_usuarios` | usuários sem PIN |

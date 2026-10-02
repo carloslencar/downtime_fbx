@@ -95,7 +95,7 @@ test('API com banco', { skip: !URL_DB && 'defina DATABASE_URL para rodar' }, asy
       assert.equal((await req('GET', `/api/relatorios/${n}.csv?chave=chave-teste`)).status, 200, n);
     }
     assert.equal((await req('GET', '/api/relatorios', null, cOp)).status, 403);
-    assert.equal((await req('GET', '/api/relatorios', null, cAdm)).j.tabelas.length, 7);
+    assert.equal((await req('GET', '/api/relatorios', null, cAdm)).j.tabelas.length, 9);
   });
 
   await t.test('paradas recebem número sequencial', async () => {
@@ -180,6 +180,96 @@ test('API com banco', { skip: !URL_DB && 'defina DATABASE_URL para rodar' }, asy
     assert.equal(csv.status, 200);
     assert.match(csv.txt, /Filtro hidráulico/);
     assert.match(csv.txt, /4500123/);
+  });
+
+  await t.test('horímetro: leituras com hora da coleta, validação e horímetro derivado', async () => {
+    const cP = (await req('POST', '/api/login', { id: 'u50001', pin: '5555' })).cookie;
+    const H = 3600000, agora = Date.now();
+    // leitura inicial criada na partida (protótipo), com a data da última leitura conhecida
+    await db.pool.query("update docs set dados = jsonb_set(dados, '{horimetroEm}', to_jsonb($1::bigint)) where colecao = 'equipamentos' and id = 'DZ-01'", [agora - 48 * H]);
+    await docs.leiturasIniciais();
+    const ini = (await req('GET', '/api/docs/leituras')).j.docs.filter(d => d.data.tag === 'DZ-01');
+    assert.equal(ini.length, 1);
+    assert.equal(ini[0].data.origem, 'inicial');
+    const base = ini[0].data.valor, t0 = ini[0].data.capturadaEm;
+    // operação não lança leitura diária
+    assert.equal((await req('PUT', '/api/docs/leituras/DZ-01_x', { tag: 'DZ-01', valor: base + 5, capturadaEm: agora }, cOp)).status, 403);
+    // planejamento lança leitura coletada de manhã, mas digitada agora
+    const tManha = Math.max(t0 + 2 * H, agora - 10 * H);
+    let r = await req('PUT', `/api/docs/leituras/DZ-01_${tManha}`, { tag: 'DZ-01', valor: base + 20, capturadaEm: tManha }, cP);
+    assert.equal(r.status, 200, r.txt);
+    assert.equal(r.j.data.lancadaPor, 'P. Planner');
+    let eq = (await req('GET', '/api/docs/equipamentos/DZ-01')).j.data;
+    assert.equal(eq.horimetro, base + 20);
+    assert.equal(eq.horimetroEm, tManha);
+    // leitura menor que a anterior é recusada
+    r = await req('PUT', `/api/docs/leituras/DZ-01_${agora}`, { tag: 'DZ-01', valor: base + 10, capturadaEm: agora }, cP);
+    assert.equal(r.status, 400);
+    assert.match(r.j.erro, /menor que a leitura/);
+    // leitura atrasada (coleta antiga) não substitui a mais recente
+    const tMeio = tManha - H;
+    r = await req('PUT', `/api/docs/leituras/DZ-01_${tMeio}`, { tag: 'DZ-01', valor: base + 15, capturadaEm: tMeio }, cP);
+    assert.equal(r.status, 200, r.txt);
+    eq = (await req('GET', '/api/docs/equipamentos/DZ-01')).j.data;
+    assert.equal(eq.horimetro, base + 20);
+    // e não pode passar da leitura seguinte
+    assert.equal((await req('PUT', `/api/docs/leituras/DZ-01_${tMeio + 1}`, { tag: 'DZ-01', valor: base + 30, capturadaEm: tMeio + 1 }, cP)).status, 400);
+    // data no futuro é recusada
+    assert.equal((await req('PUT', `/api/docs/leituras/DZ-01_f`, { tag: 'DZ-01', valor: base + 99, capturadaEm: agora + 3 * H }, cP)).status, 400);
+    // leitura vinda do quadro (abertura de parada) vira leitura e o horímetro do cliente não manda
+    const t2 = Date.now();
+    r = await req('PUT', '/api/docs/equipamentos/DZ-01', { ...eq, horimetro: 1, horLeitura: { valor: base + 25, em: t2, origem: 'parada' } }, cOp);
+    assert.equal(r.status, 200);
+    assert.equal(r.j.data.horimetro, base + 25);
+    const l2 = (await req('GET', `/api/docs/leituras/DZ-01_${t2}`)).j.data;
+    assert.equal(l2.origem, 'parada');
+    // gravação antiga do equipamento (cópia desatualizada) não volta o horímetro
+    r = await req('PUT', '/api/docs/equipamentos/DZ-01', { ...eq, obs: 'x' }, cOp);
+    assert.equal(r.j.data.horimetro, base + 25);
+    // correção com valor menor é recusada com explicação
+    r = await req('PUT', '/api/docs/equipamentos/DZ-01', { ...r.j.data, horLeitura: { valor: base, em: Date.now(), origem: 'correcao' } }, cOp);
+    assert.equal(r.status, 400);
+    // remover a leitura volta o horímetro para a anterior
+    assert.equal((await req('DELETE', `/api/docs/leituras/DZ-01_${t2}`, null, cP)).status, 200);
+    eq = (await req('GET', '/api/docs/equipamentos/DZ-01')).j.data;
+    assert.equal(eq.horimetro, base + 20);
+    assert.ok(eq.horimetroMedia == null || eq.horimetroMedia >= 0);
+    const csv = await req('GET', '/api/relatorios/leituras.csv?chave=chave-teste');
+    assert.equal(csv.status, 200);
+    assert.match(csv.txt, /DZ-01/);
+  });
+
+  await t.test('preventiva: planos, parada preventiva liberada registra a PM', async () => {
+    const cP = (await req('POST', '/api/login', { id: 'u50001', pin: '5555' })).cookie;
+    const cMan = (await req('POST', '/api/login', { id: 'u30101', pin: '1234' })).cookie;
+    assert.equal((await req('PUT', '/api/docs/config/planos', { lista: [{ id: 'p1', nome: 'X', intervalos: [250, 600], frotas: ['te'] }] }, cP)).status, 400);
+    assert.equal((await req('PUT', '/api/docs/config/planos', { lista: [{ id: 'p1', nome: 'Dozers', intervalos: [250, 500, 1000], aviso: 50, frotas: ['te'] }] }, cOp)).status, 403);
+    assert.equal((await req('PUT', '/api/docs/config/planos', { lista: [{ id: 'p1', nome: 'Dozers', intervalos: [250, 500, 1000], aviso: 50, frotas: ['te'] }] }, cP)).status, 200);
+    // última preventiva informada pelo planejamento
+    assert.equal((await req('PUT', '/api/docs/preventivas/DZ-02', { tag: 'DZ-02', historico: [{ pos: 500, nome: 'PM 500', horimetro: 1000, em: Date.now() - 86400000, origem: 'manual' }], programada: '2026-10-05' }, cMan)).status, 403);
+    assert.equal((await req('PUT', '/api/docs/preventivas/DZ-02', { tag: 'DZ-02', historico: [{ pos: 500, nome: 'PM 500', horimetro: 1000, em: Date.now() - 86400000, origem: 'manual' }], programada: '2026-10-05' }, cP)).status, 200);
+    const now = Date.now(), pid = 'DZ-02_' + now;
+    const par = { id: pid, tag: 'DZ-02', tipo: 'preventiva', pm: { pos: 750, nome: 'PM 250' }, inicio: now, fim: null, motivo: 'Preventiva', horIni: 1260, etapas: [{ status: 'aguardando', t: now, por: 'Operação' }], correcoes: [] };
+    await req('PUT', '/api/docs/paradas/' + pid, par, cOp);
+    let pv = (await req('GET', '/api/docs/preventivas/DZ-02')).j.data;
+    assert.equal(pv.historico.length, 1);
+    par.etapas.push({ status: 'em_manutencao', t: now + 1 }, { status: 'liberado', t: now + 2, por: 'Manutenção · J. Souza' });
+    await req('PUT', '/api/docs/paradas/' + pid, par, cMan);
+    pv = (await req('GET', '/api/docs/preventivas/DZ-02')).j.data;
+    assert.equal(pv.historico.length, 2);
+    assert.deepEqual([pv.historico[1].pos, pv.historico[1].horimetro, pv.historico[1].paradaId], [750, 1260, pid]);
+    assert.equal(pv.programada, null);
+    // liberação desfeita: o registro sai
+    par.etapas.pop();
+    await req('PUT', '/api/docs/paradas/' + pid, par, cMan);
+    pv = (await req('GET', '/api/docs/preventivas/DZ-02')).j.data;
+    assert.equal(pv.historico.length, 1);
+    par.etapas.push({ status: 'liberado', t: now + 3, por: 'Manutenção · J. Souza' });
+    await req('PUT', '/api/docs/paradas/' + pid, par, cMan);
+    const csv = await req('GET', '/api/relatorios/preventivas.csv?chave=chave-teste');
+    assert.match(csv.txt, /DZ-02,.*PM 250/);
+    const pcsv = await req('GET', '/api/relatorios/paradas.csv?chave=chave-teste');
+    assert.match(pcsv.txt, /Preventiva/);
   });
 
   await t.test('tempo real envia as mudanças', async () => {

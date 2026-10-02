@@ -3,12 +3,13 @@ const { EventEmitter } = require('events');
 const { pool } = require('./db');
 const { definirPin } = require('./auth');
 const regras = require('./regras');
+const config = require('./config');
 
 const mudancas = new EventEmitter();
 mudancas.setMaxListeners(0);
 
 const FEED_MAX = 40;
-const ORDENAVEIS = new Set(['inicio', 't', 'atualizadoEm']);
+const ORDENAVEIS = new Set(['inicio', 't', 'atualizadoEm', 'capturadaEm']);
 
 // O que sai do servidor nunca leva PIN nem hash.
 function publico(col, dados) {
@@ -61,6 +62,57 @@ async function contarUsuarios(c) {
   return { ativos: Number(r.rows[0].ativos), admins: Number(r.rows[0].admins) };
 }
 
+/* ---------- Horímetro ----------
+   Cada leitura (coleção "leituras") guarda o valor e a hora em que foi CAPTURADA no equipamento,
+   que pode ser bem antes da hora em que foi lançada no sistema. O horímetro atual do equipamento é
+   sempre a leitura com a captura mais recente (não a última digitada), e a média de horas por dia
+   sai das leituras dos últimos 30 dias. */
+const DIA = 86400000;
+const arred1 = n => Math.round(n * 10) / 10;
+function fmtH(n) { return Number(n).toLocaleString('pt-BR') + ' h'; }
+function fmtData(ms) {
+  try { return new Date(ms).toLocaleString('pt-BR', { timeZone: config.tz, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ''); }
+  catch (e) { return new Date(ms).toISOString().slice(0, 16).replace('T', ' '); }
+}
+function nomeUsuario(u) { return u ? (u.curto || u.nome || '') : ''; }
+
+async function leiturasDe(c, tag) {
+  const r = await c.query(
+    `select id, (dados->>'valor')::numeric as v, (dados->>'capturadaEm')::bigint as t, dados->>'origem' as o
+       from docs where colecao = 'leituras' and dados->>'tag' = $1 order by 3, 1`, [tag]);
+  return r.rows.map(x => ({ id: x.id, v: Number(x.v), t: Number(x.t), o: x.o })).filter(x => Number.isFinite(x.v) && Number.isFinite(x.t));
+}
+// A leitura nova precisa caber entre a anterior e a seguinte (pela hora da coleta).
+function validarLeitura(lista, t, v) {
+  let prev = null, next = null;
+  for (const l of lista) { if (l.t <= t) prev = l; else { next = l; break; } }
+  if (prev && v < prev.v) return `O horímetro ${fmtH(v)} é menor que a leitura de ${fmtData(prev.t)} (${fmtH(prev.v)}). Confira o valor ou corrija aquela leitura.`;
+  if (next && v > next.v) return `O horímetro ${fmtH(v)} é maior que a leitura seguinte, de ${fmtData(next.t)} (${fmtH(next.v)}). Confira a data e a hora da coleta.`;
+  return null;
+}
+function derivarHorimetro(lista) {
+  if (!lista.length) return null;
+  const ult = lista[lista.length - 1];
+  // A leitura inicial (cadastro antigo, data aproximada) não entra na média.
+  const reais = lista.filter(l => l !== ult && l.o !== 'inicial' && l.t < ult.t);
+  let ref = reais.find(l => l.t >= ult.t - 30 * DIA) || null;
+  if (!ref && reais.length) ref = reais[reais.length - 1];
+  let media = null;
+  if (ref && ult.t - ref.t >= 12 * 3600000) media = Math.max(0, Math.min(24, arred1((ult.v - ref.v) / ((ult.t - ref.t) / DIA))));
+  return { horimetro: ult.v, horimetroEm: ult.t, horimetroMedia: media };
+}
+// Grava um documento dentro da transação (efeitos automáticos do servidor) e devolve a mudança para o tempo real.
+async function escreverTx(c, col, id, dados, uid) {
+  const r = await c.query(
+    `insert into docs (colecao, id, dados, versao, atualizado_em, atualizado_por) values ($1, $2, $3, 1, now(), $4)
+     on conflict (colecao, id) do update set dados = excluded.dados, versao = docs.versao + 1,
+       atualizado_em = now(), atualizado_por = excluded.atualizado_por
+     returning versao`, [col, id, dados, uid]);
+  await c.query('insert into historico (colecao, doc_id, operacao, usuario_id, dados) values ($1, $2, $3, $4, $5)', [col, id, 'set', uid, dados]);
+  return { col, id, data: dados, v: r.rows[0].versao };
+}
+function numOuNull(v) { const n = Number(v); return v === '' || v == null || !Number.isFinite(n) ? null : n; }
+
 /**
  * Grava (op 'set') ou remove (op 'delete') um documento, conferindo as regras.
  * Retorna { id, data, v } do documento resultante (data null quando removido).
@@ -68,6 +120,7 @@ async function contarUsuarios(c) {
 async function gravar({ usuario, col, id, op, dados }) {
   const c = await pool.connect();
   let resultado, eraNovo = false;
+  const extras = []; // mudanças feitas pelo próprio servidor (leitura criada, horímetro, preventiva)
   try {
     await c.query('begin');
     // Trava por documento: gravações simultâneas no mesmo registro ficam em fila.
@@ -112,6 +165,46 @@ async function gravar({ usuario, col, id, op, dados }) {
       if (par.rows[0].dados.numero) novo.numero = par.rows[0].dados.numero;
     }
 
+    const uid0 = usuario ? usuario.id : null;
+    // Leitura lançada (planejamento): precisa caber entre a anterior e a seguinte.
+    if (col === 'leituras' && op === 'set') {
+      novo.id = id;
+      novo.valor = arred1(Number(novo.valor));
+      novo.capturadaEm = Math.round(Number(novo.capturadaEm));
+      if (anterior && anterior.tag !== novo.tag) throw new ErroRegra(400, 'A leitura não pode mudar de equipamento.');
+      const eq = await c.query("select 1 from docs where colecao = 'equipamentos' and id = $1", [novo.tag]);
+      if (!eq.rowCount) throw new ErroRegra(400, 'Equipamento não encontrado.');
+      const msg = validarLeitura((await leiturasDe(c, novo.tag)).filter(l => l.id !== id), novo.capturadaEm, novo.valor);
+      if (msg) throw new ErroRegra(400, msg);
+      novo.lancadaEm = anterior && anterior.lancadaEm ? anterior.lancadaEm : Date.now();
+      novo.lancadaPor = anterior && anterior.lancadaPor ? anterior.lancadaPor : (novo.lancadaPor || nomeUsuario(usuario));
+      if (anterior) { novo.editadaEm = Date.now(); novo.editadaPor = nomeUsuario(usuario); }
+      novo.origem = novo.origem || 'diaria';
+    }
+    // Equipamento: a leitura informada no quadro (abrir/liberar parada, cadastro, correção) vira uma
+    // leitura, e o horímetro do equipamento é sempre o que as leituras dizem.
+    if (col === 'equipamentos' && op === 'set') {
+      const lista = await leiturasDe(c, id);
+      const hl = novo.horLeitura, ah = anterior && anterior.horLeitura;
+      if (hl && typeof hl === 'object' && numOuNull(hl.valor) != null && Number(hl.valor) >= 0 && numOuNull(hl.em) != null &&
+          !(ah && Number(ah.em) === Number(hl.em) && Number(ah.valor) === Number(hl.valor))) {
+        const t = Math.round(Number(hl.em)), v = arred1(Number(hl.valor)), lid = `${id}_${t}`;
+        if (!lista.some(l => l.id === lid)) {
+          const msg = t > Date.now() + 10 * 60000 ? 'A data da leitura não pode estar no futuro.' : validarLeitura(lista, t, v);
+          if (msg) {
+            // Correção e cadastro mostram o erro; nas paradas a leitura é só ignorada (a parada não pode se perder).
+            if (hl.origem === 'correcao' || hl.origem === 'cadastro') throw new ErroRegra(400, msg);
+          } else {
+            const lei = { id: lid, tag: id, valor: v, capturadaEm: t, lancadaEm: Date.now(), lancadaPor: nomeUsuario(usuario), origem: hl.origem || 'parada' };
+            extras.push(await escreverTx(c, 'leituras', lid, lei, uid0));
+            lista.push({ id: lid, v, t }); lista.sort((a, b) => a.t - b.t || (a.id < b.id ? -1 : 1));
+          }
+        }
+      }
+      const d = derivarHorimetro(lista);
+      if (d) Object.assign(novo, d);
+    }
+
     if (col === 'log' && id === 'feed') {
       const recebidos = novo.eventos;
       novo = { ...novo, eventos: mesclarFeed(anterior && anterior.eventos, recebidos) };
@@ -144,6 +237,47 @@ async function gravar({ usuario, col, id, op, dados }) {
       }
       resultado = { id, data: null, v: 0 };
     }
+    // Leitura lançada ou removida: atualiza o horímetro do equipamento.
+    if (col === 'leituras') {
+      const tag = (novo || anterior || {}).tag;
+      if (tag) {
+        await c.query('select pg_advisory_xact_lock(hashtext($1))', ['equipamentos/' + tag]);
+        const er = await c.query("select dados from docs where colecao = 'equipamentos' and id = $1", [tag]);
+        const d = er.rowCount ? derivarHorimetro(await leiturasDe(c, tag)) : null;
+        if (d) {
+          const eq = er.rows[0].dados;
+          if (eq.horimetro !== d.horimetro || eq.horimetroEm !== d.horimetroEm || eq.horimetroMedia !== d.horimetroMedia) {
+            extras.push(await escreverTx(c, 'equipamentos', tag, { ...eq, ...d }, uid0));
+          }
+        }
+      }
+    }
+    // Parada preventiva liberada pela manutenção: registra a preventiva feita (e desfaz se a
+    // liberação for desfeita ou a parada cancelada).
+    if (col === 'paradas' && ((novo && novo.tipo === 'preventiva') || (anterior && anterior.tipo === 'preventiva'))) {
+      const par = novo || anterior, tag = par.tag;
+      const lib = novo && novo.tipo === 'preventiva' && !novo.cancelada ? (novo.etapas || []).find(e => e && e.status === 'liberado') : null;
+      await c.query('select pg_advisory_xact_lock(hashtext($1))', ['preventivas/' + tag]);
+      const pr = await c.query("select dados from docs where colecao = 'preventivas' and id = $1", [tag]);
+      const pv = pr.rowCount ? { ...pr.rows[0].dados } : { tag, historico: [], programada: null };
+      const hist = Array.isArray(pv.historico) ? pv.historico.slice() : [];
+      const i = hist.findIndex(h => h && h.paradaId === id);
+      let mudou = false;
+      if (lib && i < 0) {
+        const er = await c.query("select dados from docs where colecao = 'equipamentos' and id = $1", [tag]);
+        const eqd = er.rowCount ? er.rows[0].dados : {};
+        const hor = numOuNull(novo.horIni) ?? numOuNull(novo.horFim) ?? numOuNull(eqd.horimetro);
+        const pm = novo.pm && typeof novo.pm === 'object' ? novo.pm : {};
+        hist.push({ pos: numOuNull(pm.pos), nome: pm.nome || 'Preventiva', horimetro: hor, em: Number(lib.t) || Date.now(),
+          paradaId: id, numero: novo.numero || null, por: lib.por || '', origem: 'parada' });
+        pv.programada = null;
+        mudou = true;
+      } else if (!lib && i >= 0) { hist.splice(i, 1); mudou = true; }
+      if (mudou) {
+        hist.sort((a, b) => (a.em || 0) - (b.em || 0));
+        extras.push(await escreverTx(c, 'preventivas', tag, { ...pv, tag, historico: hist.slice(-200), atualizadoEm: Date.now() }, uid0));
+      }
+    }
     if (col !== 'log') {
       await c.query('insert into historico (colecao, doc_id, operacao, usuario_id, dados) values ($1, $2, $3, $4, $5)',
         [col, id, op, uid, op === 'set' ? publico(col, novo) : null]);
@@ -153,6 +287,7 @@ async function gravar({ usuario, col, id, op, dados }) {
     await c.query('rollback').catch(() => {});
     throw e;
   } finally { c.release(); }
+  for (const m of extras) mudancas.emit('mudanca', m);
   mudancas.emit('mudanca', { col, ...resultado });
   if (col === 'pecas' && op === 'set') agendarConferencia(resultado.data.paradaId, usuario, eraNovo ? id : null);
   return resultado;
@@ -262,4 +397,27 @@ async function numerarParadas() {
     (select count(*) > 0 from docs where colecao = 'paradas' and dados ? 'numero'))`);
 }
 
-module.exports = { listar, ler, gravar, mesclarFeed, publico, mudancas, ErroRegra, contarUsuarios, numerarParadas, conferirPecas, aguardarConferencias: () => filaConferencia };
+// Equipamentos que já tinham horímetro antes das leituras ganham uma leitura inicial.
+async function leiturasIniciais() {
+  const r = await pool.query(`
+    select e.id, e.dados, (extract(epoch from e.atualizado_em) * 1000)::bigint as em from docs e
+     where e.colecao = 'equipamentos' and dt_num(e.dados->>'horimetro') is not null
+       and not exists (select 1 from docs l where l.colecao = 'leituras' and l.dados->>'tag' = e.id)`).catch(() => ({ rows: [] }));
+  for (const row of r.rows) {
+    const v = Number(row.dados.horimetro);
+    if (!Number.isFinite(v) || v < 0) continue;
+    // Sem a data da última leitura, considera um dia antes (a data exata não é conhecida).
+    const t = Number(row.dados.horimetroEm) || Math.min(Number(row.em) || Date.now(), Date.now()) - DIA;
+    const lid = `${row.id}_${Math.round(t)}`;
+    const c = await pool.connect();
+    try {
+      await c.query('begin');
+      await escreverTx(c, 'leituras', lid, { id: lid, tag: row.id, valor: arred1(v), capturadaEm: Math.round(t), lancadaEm: Date.now(), lancadaPor: 'Sistema', origem: 'inicial' }, null);
+      const d = derivarHorimetro(await leiturasDe(c, row.id));
+      if (d) await escreverTx(c, 'equipamentos', row.id, { ...row.dados, ...d }, null);
+      await c.query('commit');
+    } catch (e) { await c.query('rollback').catch(() => {}); console.error('[leituras]', e.message); } finally { c.release(); }
+  }
+}
+
+module.exports = { listar, ler, gravar, mesclarFeed, publico, mudancas, ErroRegra, contarUsuarios, numerarParadas, leiturasIniciais, validarLeitura, derivarHorimetro, conferirPecas, aguardarConferencias: () => filaConferencia };
