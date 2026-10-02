@@ -89,7 +89,7 @@ test('API com banco', { skip: !URL_DB && 'defina DATABASE_URL para rodar' }, asy
     assert.equal((await req('GET', '/api/relatorios/paradas.csv?chave=errada')).status, 403);
     const r = await req('GET', '/api/relatorios/paradas.csv?chave=chave-teste');
     assert.equal(r.status, 200);
-    assert.match(r.txt, /^\uFEFF?ID,Nº,TAG,Frota/);
+    assert.match(r.txt, /^\uFEFF?ID,Nº,TAG,Oficina,Frota/);
     assert.match(r.txt, /ADT-01_/);
     for (const n of ['etapas', 'correcoes', 'equipamentos', 'eventos', 'usuarios']) {
       assert.equal((await req('GET', `/api/relatorios/${n}.csv?chave=chave-teste`)).status, 200, n);

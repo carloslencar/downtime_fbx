@@ -49,7 +49,12 @@ $$ select case s
     when 'admin'      then 'Administrador'
     else s end $$;
 
-drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas, vw_pecas cascade;
+drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas, vw_pecas, vw_oficinas cascade;
+
+create view vw_oficinas as
+select o->>'id' as oficina_id, o->>'nome' as oficina
+from docs c, jsonb_array_elements(coalesce(c.dados->'lista', '[]'::jsonb)) o
+where c.colecao = 'config' and c.id = 'oficinas';
 
 create view vw_frotas as
 select f->>'id'      as frota_id,
@@ -62,6 +67,7 @@ where c.colecao = 'config' and c.id = 'frotas';
 
 create view vw_equipamentos as
 select e.id                           as tag,
+       ofi.oficina                    as oficina,
        fr.frota                       as frota,
        dt_tipo(e.dados->>'tipo')      as tipo,
        nullif(e.dados->>'porte', '')  as porte,
@@ -75,6 +81,7 @@ select e.id                           as tag,
        coalesce((e.dados->>'ativo')::boolean, true) as no_painel
 from docs e
 left join vw_frotas fr on fr.frota_id = e.dados->>'grupo'
+left join vw_oficinas ofi on ofi.oficina_id = nullif(e.dados->>'oficina', '')
 where e.colecao = 'equipamentos';
 
 create view vw_paradas as
@@ -89,6 +96,7 @@ with p as (
 select p.id                                   as parada_id,
        dt_num(p.dados->>'numero')::int        as numero,
        p.dados->>'tag'                        as tag,
+       coalesce(op.oficina, eq.oficina)       as oficina,
        eq.frota,
        eq.tipo,
        eq.area,
@@ -107,7 +115,8 @@ select p.id                                   as parada_id,
           from jsonb_array_elements(coalesce(p.dados->'responsaveis', '[]'::jsonb)) with ordinality as x(r, n)) as responsaveis,
        greatest(jsonb_array_length(coalesce(p.dados->'responsaveis', '[]'::jsonb)) - 1, 0) as transferencias
 from p
-left join vw_equipamentos eq on eq.tag = p.dados->>'tag';
+left join vw_equipamentos eq on eq.tag = p.dados->>'tag'
+left join vw_oficinas op on op.oficina_id = nullif(p.dados->>'oficina', '');
 
 create view vw_etapas as
 with e as (
@@ -163,6 +172,7 @@ select u.dados->>'matricula' as matricula,
        u.dados->>'nome'      as nome,
        u.dados->>'curto'     as nome_curto,
        dt_perfil(u.dados->>'perfil') as perfil,
+       (select oficina from vw_oficinas where oficina_id = nullif(u.dados->>'oficina', '')) as oficina,
        coalesce((u.dados->>'ativo')::boolean, true) as ativo
 from docs u
 where u.colecao = 'usuarios';

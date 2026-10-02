@@ -9,7 +9,7 @@ const TABELAS = {
   paradas: {
     view: 'vw_paradas', ordem: 'inicio desc', filtroData: 'inicio',
     cols: {
-      parada_id: 'ID', numero: 'Nº', tag: 'TAG', frota: 'Frota', tipo: 'Tipo', area: 'Área', motivo: 'Motivo', observacao: 'Observação',
+      parada_id: 'ID', numero: 'Nº', tag: 'TAG', oficina: 'Oficina', frota: 'Frota', tipo: 'Tipo', area: 'Área', motivo: 'Motivo', observacao: 'Observação',
       inicio: 'Início', fim: 'Fim', duracao_h: 'Duração (h)', situacao: 'Situação', tecnico: 'Técnico',
       horimetro_inicio: 'Horímetro início', horimetro_fim: 'Horímetro fim', correcoes: 'Correções', aberta_por: 'Aberta por',
       responsaveis: 'Responsáveis', transferencias: 'Transferências'
@@ -29,7 +29,7 @@ const TABELAS = {
   equipamentos: {
     view: 'vw_equipamentos', ordem: 'tag',
     cols: {
-      tag: 'TAG', frota: 'Frota', tipo: 'Tipo', porte: 'Porte', modelo: 'Modelo', area: 'Área', ano: 'Ano', horimetro: 'Horímetro',
+      tag: 'TAG', oficina: 'Oficina', frota: 'Frota', tipo: 'Tipo', porte: 'Porte', modelo: 'Modelo', area: 'Área', ano: 'Ano', horimetro: 'Horímetro',
       horimetro_em: 'Leitura do horímetro', situacao_atual: 'Situação atual', situacao_desde: 'Desde', no_painel: 'No painel'
     }
   },
@@ -48,7 +48,7 @@ const TABELAS = {
   },
   usuarios: {
     view: 'vw_usuarios', ordem: 'nome',
-    cols: { matricula: 'Matrícula', nome: 'Nome', nome_curto: 'Nome curto', perfil: 'Perfil', ativo: 'Ativo' }
+    cols: { matricula: 'Matrícula', nome: 'Nome', nome_curto: 'Nome curto', perfil: 'Perfil', oficina: 'Oficina', ativo: 'Ativo' }
   }
 };
 

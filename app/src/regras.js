@@ -36,7 +36,7 @@ function verificar({ usuario, col, id, op, anterior, novo, adminsAtivos = 0, haU
   if (col === 'config') {
     if (op !== 'set') return negar(403, 'Configurações não podem ser removidas.');
     if (id === 'frotas') return null;
-    if (id === 'opcoes' || id === 'areas') return admin ? null : negar(403, 'Só o administrador muda estas opções.');
+    if (id === 'opcoes' || id === 'areas' || id === 'oficinas') return admin ? null : negar(403, 'Só o administrador muda estas opções.');
     return negar(404, 'Configuração desconhecida.');
   }
   if (col === 'log') {

@@ -12,7 +12,7 @@ const pool = new Pool({
 pool.on('error', err => console.error('[db] erro na conexão ociosa:', err.message));
 
 const SQL_DIR = path.join(__dirname, '..', 'sql');
-const VIEWS = ['vw_frotas', 'vw_equipamentos', 'vw_paradas', 'vw_etapas', 'vw_correcoes', 'vw_eventos', 'vw_usuarios', 'vw_pecas'];
+const VIEWS = ['vw_frotas', 'vw_equipamentos', 'vw_paradas', 'vw_etapas', 'vw_correcoes', 'vw_eventos', 'vw_usuarios', 'vw_pecas', 'vw_oficinas'];
 
 async function esperarBanco(tentativas = 30) {
   for (let i = 1; ; i++) {

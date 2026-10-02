@@ -72,6 +72,13 @@ Depois de mudar, rode `docker compose up -d`.
   - **Peças recebidas:** todas chegaram. O equipamento fica sem técnico até um mecânico tocar em **Assumir atendimento**
     (não volta automaticamente para quem pediu).
   Manutenção e planejamento podem acrescentar peças; uma peça nova sem OC volta o status para Peças solicitadas.
+- **Oficinas (várias manutenções):** o administrador cadastra as oficinas em **Cadastro › Oficinas**. Cada equipamento
+  tem a sua oficina (campo "Oficina responsável" no cadastro) e cada mecânico também (aba Usuários). Na hora de assumir
+  ou transferir um atendimento, aparecem só os mecânicos da oficina do equipamento.
+  Cada TV mostra só a sua oficina: em **Configurações › Esta tela › Oficina desta tela**, ou direto no endereço,
+  por exemplo `http://downtime/?oficina=oficina-norte` (o próprio sistema mostra o endereço certo de cada oficina).
+  O filtro vale para o painel, a fila, os eventos, os avisos, o alarme sonoro e a aba Peças. A sala de controle
+  continua em "Todas as oficinas".
 - **Transferir atendimento:** com o equipamento em manutenção (ou com peças solicitadas), a manutenção toca em
   **Transferir atendimento**, escolhe o novo técnico e, se quiser, escreve uma observação (ex.: troca de turno).
   A etapa e o tempo não mudam; a troca aparece nos eventos e na coluna "Responsáveis" dos relatórios.

@@ -14,13 +14,13 @@ os dados novos.
 
 | Tabela | Uma linha por | Campos principais |
 |--------|---------------|-------------------|
-| Paradas | parada | ID, Nº, TAG, Frota, Tipo, Área, Motivo, Início, Fim, Duração (h), Situação, Técnico, Horímetros |
+| Paradas | parada | ID, Nº, TAG, Oficina, Frota, Tipo, Área, Motivo, Início, Fim, Duração (h), Situação, Técnico, Horímetros |
 | Etapas | etapa de cada parada | Parada, TAG, Etapa (aguardando, em manutenção, peças solicitadas, aguardando peças, peças recebidas, liberado), Início, Fim, Duração (h) |
 | Correções | correção ou cancelamento | Parada, Data, Por, Campo, De, Para, Justificativa |
 | Peças | peça solicitada | Parada nº, TAG, Peça, Código, Quantidade, Solicitada em/por, Ordem de compra, Chegou em, Espera (h), Situação |
-| Equipamentos | equipamento | TAG, Frota, Tipo, Porte, Modelo, Área, Ano, Horímetro, Situação atual |
+| Equipamentos | equipamento | TAG, Oficina, Frota, Tipo, Porte, Modelo, Área, Ano, Horímetro, Situação atual |
 | Eventos | lançamento (histórico completo) | Data, TAG, Situação, Ação, Por, Detalhe, Horímetro |
-| Usuários | usuário | Matrícula, Nome, Perfil, Ativo (nunca o PIN) |
+| Usuários | usuário | Matrícula, Nome, Perfil, Oficina, Ativo (nunca o PIN) |
 
 Datas no fuso do `.env` (`TZ`). Para filtrar período direto no link, acrescente `&de=2026-09-01&ate=2026-09-30`.
 
@@ -52,6 +52,7 @@ Esse usuário só lê as views (não enxerga PINs nem tabelas internas):
 | `vw_eventos` | todos os eventos lançados (histórico completo) |
 | `vw_usuarios` | usuários sem PIN |
 | `vw_frotas` | frotas cadastradas |
+| `vw_oficinas` | oficinas cadastradas |
 
 Exemplo, tempo médio de parada por frota no mês:
 

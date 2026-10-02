@@ -28,6 +28,19 @@ Name=Quadro de Paradas
 Exec=chromium --kiosk --autoplay-policy=no-user-gesture-required --noerrdialogs --disable-session-crashed-bubble http://downtime/
 ```
 
+## Uma TV por oficina
+
+Com as oficinas cadastradas (Cadastro › Oficinas), cada TV pode mostrar só os equipamentos da sua oficina.
+O jeito mais prático é colocar a oficina no endereço do atalho do modo quiosque:
+
+```
+http://downtime/?oficina=oficina-norte
+```
+
+O endereço exato de cada oficina aparece em **Configurações › Esta tela › Oficina desta tela** depois de escolhê-la.
+Sem o endereço, dá para escolher a oficina nesse mesmo menu (fica salvo no aparelho). O nome da oficina aparece no topo
+da tela. O alarme sonoro daquela TV também só toca para os equipamentos da oficina.
+
 ## Alarme sonoro
 
 Em **Configurações › Esta tela › Alarme sonoro** cada aparelho liga o seu alarme e escolhe os avisos:

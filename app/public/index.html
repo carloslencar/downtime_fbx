@@ -27,7 +27,7 @@
   <header class="top">
     <div class="marca">
       <svg viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="1" width="36" height="36" rx="8" fill="none" stroke="#31404B" stroke-width="2"/><rect x="8" y="22" width="5" height="9" rx="1" fill="#52B886"/><rect x="16.5" y="14" width="5" height="17" rx="1" fill="#F29B24"/><rect x="25" y="7" width="5" height="24" rx="1" fill="#F2493E"/></svg>
-      <div><h1>Quadro de Paradas</h1><p>Operação × Manutenção · frota de mina</p></div>
+      <div><h1>Quadro de Paradas<span class="marca-ofi" id="marca-ofi" hidden></span></h1><p>Operação × Manutenção · frota de mina</p></div>
     </div>
     <div class="ctrl">
       <div class="seg nav" id="nav" role="group" aria-label="Seção"><button type="button" data-view="painel">Painel</button><button type="button" data-view="cadastro">Cadastro</button><button type="button" data-view="usuarios">Usuários</button><button type="button" data-view="pecas" id="nav-pecas" hidden>Peças</button><button type="button" data-view="dados" id="nav-dados" hidden>Dados</button><button type="button" data-view="config" aria-label="Configurações">Configurações</button></div>
@@ -73,6 +73,10 @@
         <div class="op" style="border-top:0">
           <div class="ic"><svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="17" cy="17" r="13"/><path d="M4 17h26M17 4c4 4 5.5 8.5 5.5 13S21 26 17 30M17 4c-4 4-5.5 8.5-5.5 13S13 26 17 30"/></svg><div><b>Idioma</b><p>Vale só para este aparelho. Cada TV, computador e celular pode usar o seu idioma, e os dados continuam os mesmos.</p></div></div>
           <div class="seg" id="c-lang" role="group" aria-label="Idioma"><button type="button" data-lang="pt" lang="pt-BR">Português</button><button type="button" data-lang="en" lang="en">English</button></div>
+        </div>
+        <div class="op">
+          <div class="ic"><svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 30V14l13-9 13 9v16"/><path d="M11 30V19h12v11"/><path d="M4 30h26"/></svg><div><b>Oficina desta tela</b><p>Mostra só os equipamentos de uma oficina: painel, fila, eventos, peças e alarme. Vale só para este aparelho.</p><p class="dica ofi-link" id="c-ofi-link"></p></div></div>
+          <select id="c-ofi" class="ofi-sel" aria-label="Oficina desta tela"><option value="">Todas as oficinas</option></select>
         </div>
         <div class="op">
           <div class="ic"><svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="10" height="10"/><rect x="20" y="4" width="10" height="10"/><rect x="4" y="20" width="10" height="10"/><path d="M20 20h4v4M30 20v10M20 30h4"/></svg><div><b>QR code fixo no painel</b><p>Mostra o QR code de acesso no canto do painel, para quem passar pela TV abrir o sistema no celular.</p></div></div>
@@ -218,7 +222,7 @@
     <section class="biblio" id="biblio" aria-label="Biblioteca de ícones · filtrar por tipo"></section>
     <div class="cad-corpo">
       <section class="painel">
-        <div class="cad-bar"><input type="search" id="busca" placeholder="Buscar TAG, modelo ou área" aria-label="Buscar equipamento"><span class="cad-n" id="cad-n"></span><span class="sp"></span><button type="button" class="ghost-sm" id="bt-areas" hidden>Áreas</button><button type="button" class="novo" id="novo">+ Novo equipamento</button></div>
+        <div class="cad-bar"><input type="search" id="busca" placeholder="Buscar TAG, modelo ou área" aria-label="Buscar equipamento"><span class="cad-n" id="cad-n"></span><span class="sp"></span><button type="button" class="ghost-sm" id="bt-oficinas" hidden>Oficinas</button><button type="button" class="ghost-sm" id="bt-areas" hidden>Áreas</button><button type="button" class="novo" id="novo">+ Novo equipamento</button></div>
         <div class="tab" id="cad-tab"></div>
       </section>
       <section class="painel cad-form" id="cad-form" aria-label="Formulário de cadastro"></section>
@@ -227,6 +231,7 @@
 </div>
 
 <div class="toast" id="toast" hidden></div>
+<div class="modal" id="oficinas" hidden><div class="dlg arsd" id="oficinas-dlg" role="dialog" aria-modal="true" aria-labelledby="oficinas-t"></div></div>
 <div class="modal" id="areas" hidden><div class="dlg arsd" id="areas-dlg" role="dialog" aria-modal="true" aria-labelledby="areas-t"></div></div>
 <div class="modal" id="qr" hidden><div class="dlg qrd" id="qr-dlg" role="dialog" aria-modal="true" aria-labelledby="qr-t"></div></div>
 <div class="modal" id="login" hidden><div class="dlg login" id="login-dlg" role="dialog" aria-modal="true" aria-labelledby="login-t"></div></div>
@@ -236,6 +241,7 @@
 <script src="js/i18n.js"></script>
 <script src="js/dados.js"></script>
 <script src="js/cliente.js"></script>
+<script src="js/oficinas.js"></script>
 <script src="js/app.js"></script>
 <script src="js/pecas.js"></script>
 <script src="js/alarme.js"></script>

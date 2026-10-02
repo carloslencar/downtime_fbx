@@ -154,6 +154,7 @@ function gruposPecas() {
     const daParada = eq && eq.paradaId === pid;
     return { pid, itens, ativos, pend, par, tag, eq, daParada, numero: (par && par.numero) || itens[0].numero, ini: Math.min(...itens.map(i => i.criadoEm || Infinity)) };
   }).filter(x => {
+    if (filtroAtivo() && !(x.eq && daTela(x.eq))) return false; // tela filtrada por oficina
     if (pFiltro === 'pendentes' && !x.pend.length) return false;
     if (pFiltro === 'semoc' && !x.pend.some(i => !i.oc)) return false;
     // "Todas" mostra as pendentes e as dos últimos 60 dias (a lista completa fica nos relatórios).

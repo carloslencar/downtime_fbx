@@ -28,7 +28,7 @@ function hhmm(t){const d=new Date(t);return pad2(d.getHours())+':'+pad2(d.getMin
 function icone(tipo){return `<svg viewBox="0 0 120 70" aria-hidden="true"><use href="#i-${esc(tipo)}"/></svg>`}
 function cmpTag(a,b){return a.localeCompare(b,'pt',{numeric:true})}
 function frotaDe(id){return frotas.find(f=>f.id===id)}
-function ativos(){return Object.values(equip).filter(e=>e.ativo!==false)}
+function ativos(){return Object.values(equip).filter(e=>e.ativo!==false&&daTela(e))}
 function colsDe(n){return n<=5?n:Math.min(5,Math.ceil(n/2))}
 function fmtH(n){return (n||n===0)&&n!==''?Number(n).toLocaleString('pt-BR')+' h':'—'}
 
@@ -132,7 +132,8 @@ function render(){
   const fila=at.filter(e=>e.status!=='operando').sort((a,b)=>(ORDEM_FILA[a.status]-ORDEM_FILA[b.status])||(a.desde-b.desde));
   $('#fila-n').textContent=fila.length?fila.length+' parados':'';
   $('#fila').innerHTML=fila.length?fila.map(e=>`<button type="button" class="fr" data-c="${e.status}" data-tag="${esc(e.tag)}"><i></i><span style="min-width:0"><span><b>${esc(e.tag)}</b><span class="fr-s">${ST[e.status].curto}</span></span><p>${esc(e.motivo)}${['aguardando_peca','aguardando_entrega','pecas_recebidas'].includes(e.status)&&resumoPecas(e.paradaId).total?' · '+esc(textoResumoPecas(e.paradaId)):(e.obs?' · '+esc(e.obs):'')}${e.tecnico&&e.status!=='aguardando'?' · '+esc(e.tecnico):''}</p></span><span class="tm" data-desde="${e.desde}"></span></button>`).join(''):'<p class="vazio">Toda a frota está operando.</p>';
-  $('#evs').innerHTML=eventos.length?eventos.slice(0,document.body.classList.contains('ajuste')?40:(qrFixo?5:9)).map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${hhmm(v.t)}</time><span><b>${esc(v.tag)}</b><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join(''):'<p class="vazio">Sem eventos ainda.</p>';
+  const evsTela=eventos.filter(v=>!filtroAtivo()||(equip[v.tag]&&daTela(equip[v.tag])));
+  $('#evs').innerHTML=evsTela.length?evsTela.slice(0,document.body.classList.contains('ajuste')?40:(qrFixo?5:9)).map(v=>`<div class="ev" data-c="${esc(v.status)}"><time>${hhmm(v.t)}</time><span><b>${esc(v.tag)}</b><span class="a">${esc(v.acao)}</span><small>${esc(v.por)}${v.detalhe?' · '+esc(v.detalhe):''}</small></span></div>`).join(''):'<p class="vazio">Sem eventos ainda.</p>';
   requestAnimationFrame(marcarMais);
   if(aberto){if(!equip[aberto.tag])fechar();else if(equip[aberto.tag].status!==aberto.st)renderModal();}
   if(vista==='cadastro')renderCad();
@@ -201,7 +202,7 @@ async function aplicar(a,tag,patch,ev){
   const novo={...antes,...patch,desde:now,anterior:antes,ultAcao:{a,t:now,papel,uid:sessaoId||'',nome:(usuarioAtual()||{}).curto||''}};
   let par;
   if(a==='abrir'){
-    par={id:tag+'_'+now,tag,inicio:now,fim:null,motivo:patch.motivo,obs:patch.obs||'',tecnico:'',horIni:ev.hor??null,horFim:null,cancelada:false,etapas:[{status:'aguardando',t:now,por:ev.por}],correcoes:[]};
+    par={id:tag+'_'+now,tag,oficina:atual.oficina||'',inicio:now,fim:null,motivo:patch.motivo,obs:patch.obs||'',tecnico:'',horIni:ev.hor??null,horFim:null,cancelada:false,etapas:[{status:'aguardando',t:now,por:ev.por}],correcoes:[]};
     novo.paradaId=par.id;
   }else{
     par=paradaAtual(atual)||paradaNova(atual);novo.paradaId=par.id;
@@ -293,7 +294,7 @@ function supervisorHtml(e){
       <div class="g2">
         <div class="cp"><label for="c-ini">Início da parada</label><input type="datetime-local" id="c-ini" step="60" value="${toLocal(e.inicioParada||e.desde)}"></div>
         <div class="cp"><label for="c-etapa">Início da etapa atual</label><input type="datetime-local" id="c-etapa" step="60" value="${toLocal(e.desde)}"><span class="dica">${esc(ST[e.status].rot)}</span></div>
-        ${e.status!=='aguardando'?`<div class="cp"><label for="c-tec">Técnico</label><select id="c-tec">${[...new Set([e.tecnico,...tecnicos()].filter(Boolean))].map(t=>`<option${t===e.tecnico?' selected':''}>${esc(t)}</option>`).join('')}</select></div>`:''}
+        ${e.status!=='aguardando'?`<div class="cp"><label for="c-tec">Técnico</label><select id="c-tec">${[...new Set([e.tecnico,...tecnicos(e)].filter(Boolean))].map(t=>`<option${t===e.tecnico?' selected':''}>${esc(t)}</option>`).join('')}</select></div>`:''}
         <div class="cp"><label for="c-hor">Horímetro (h)</label><input type="number" id="c-hor" min="0" step="1" value="${e.horimetro===''||e.horimetro==null?'':esc(e.horimetro)}"></div>
       </div>${just}${err}
       <div class="acoes"><button type="button" class="go sec" style="--k:var(--muted)" data-acao="voltar">Voltar</button><button type="button" class="go" style="--k:var(--glass)" data-acao="salvarCorr">Salvar correção</button></div></div>`;
@@ -339,8 +340,8 @@ function acoesPapel(e){
   }
   if(e.status==='operando')return nota('Paradas são abertas pela operação.');
   if(e.status==='liberado')return nota('Liberado. Aguardando a operação confirmar o recebimento.');
-  if(e.status==='pecas_recebidas')return listaPecasModal(e)+`<p class="nota">Todas as peças chegaram. Escolha quem assume o atendimento agora.</p><div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos().map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
-  if(e.status==='aguardando')return `<div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos().map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
+  if(e.status==='pecas_recebidas')return listaPecasModal(e)+`<p class="nota">Todas as peças chegaram. Escolha quem assume o atendimento agora.</p><div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos(e).map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
+  if(e.status==='aguardando')return `<div class="fs"><label for="tec">Técnico responsável</label><select id="tec">${tecnicos(e).map(t=>`<option${(usuarioAtual()||{}).curto===t?' selected':''}>${esc(t)}</option>`).join('')}</select></div><div class="acoes"><button type="button" class="go" style="--k:var(--s-maint)" data-acao="assumir">Assumir atendimento</button></div>`;
   const resp=respHtml(e);
   const obs=resp+`<div class="fs"><label for="obs">${e.status==='em_manutencao'?'Nota (nº do pedido ou serviço feito)':'Nota da liberação'}</label><input type="text" id="obs" maxlength="80" placeholder="${e.status==='em_manutencao'?'Pedido 4502 · filtro hidráulico':'Serviço concluído, testado em campo'}"></div>`;
   if(e.status==='em_manutencao')return listaPecasModal(e)+obs+horCampo(e)+`<div class="acoes"><button type="button" class="go sec" style="--k:var(--s-peca)" data-acao="modoPecas">Solicitar peças</button><button type="button" class="go" style="--k:var(--s-lib)" data-acao="liberar">Liberar equipamento</button></div>`;
@@ -358,7 +359,7 @@ function respHtml(e){
   return `<div class="desf resp"><span>Responsável: <b>${esc(e.tecnico||'—')}</b>${r?` · recebeu de ${esc(r.de||'—')} às ${hhmm(r.t)}`:''}</span><button type="button" data-acao="modoTransf">Transferir atendimento</button></div>`;
 }
 function formTransfHtml(e){
-  const lista=tecnicos().filter(t=>t!==e.tecnico);
+  const lista=tecnicos(e).filter(t=>t!==e.tecnico);
   const err=aberto.err?`<p class="erro">${esc(aberto.err)}</p>`:'';
   if(!lista.length)return `<div class="corr"><h4>Transferir atendimento</h4><p class="nota">Não há outro técnico de manutenção ativo para receber o atendimento. Cadastre na aba Usuários.</p><div class="acoes"><button type="button" class="go sec" style="--k:var(--muted)" data-acao="voltar">Voltar</button></div></div>`;
   return `<div class="corr"><h4>Transferir atendimento</h4>
@@ -521,7 +522,13 @@ function nomeSessao(){const u=usuarioAtual();return u?' · '+u.curto:'';}
 function temUsuarios(){return Object.values(usuarios).some(u=>PERFIS[u.perfil]&&u.ativo!==false);}
 function podeGerir(){const p=papelDe(perfilAtual());return !!p&&p!=='planejador';}
 function podeUsuarios(){return podeGerir()||!temUsuarios();}
-function tecnicos(){const l=Object.values(usuarios).filter(u=>u.perfil==='manutencao'&&u.ativo!==false).map(u=>u.curto).sort((a,b)=>a.localeCompare(b));return l.length?l:[(usuarioAtual()||{}).curto].filter(Boolean);}
+// Mecânicos ativos; com o equipamento informado, só os da oficina dele (mecânico sem oficina aparece em todas).
+function tecnicos(e){
+  let us=Object.values(usuarios).filter(u=>u.perfil==='manutencao'&&u.ativo!==false);
+  if(e&&e.oficina&&oficinaPorId(e.oficina)){const d=us.filter(u=>!u.oficina||u.oficina===e.oficina);if(d.length)us=d;}
+  const l=us.map(u=>u.curto).sort((a,b)=>a.localeCompare(b));
+  return l.length?l:[(usuarioAtual()||{}).curto].filter(Boolean);
+}
 function iniciais(n){const p=String(n||'?').trim().split(/\s+/);return ((p[0]||'?')[0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
 function curtoDe(n){const p=String(n||'').trim().split(/\s+/).filter(Boolean);if(!p.length)return '';if(p.length===1)return p[0];return p[0][0].toUpperCase()+'. '+p[p.length-1];}
 
@@ -623,8 +630,8 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- Cadastro de usuários ---------- */
 let uFiltro='',uBusca='',uEdit=null,ufd=null,uErrs={},uConfRm=false,uSalvando=false;
-function novoUsuario(){uEdit=null;uErrs={};uConfRm=false;ufd={nome:'',curto:'',curtoManual:false,matricula:'',perfil:temUsuarios()?(uFiltro||'operacao'):'admin',especialidade:'',turno:'A',pin:'',pin2:'',ativo:true};renderUForm();}
-function editarUsuario(id){const u=usuarios[id];if(!u)return;uEdit=id;uErrs={};uConfRm=false;ufd={nome:u.nome,curto:u.curto,curtoManual:true,matricula:u.matricula,perfil:PERFIS[u.perfil]?u.perfil:'operacao',especialidade:u.especialidade||'',turno:u.turno||'A',pin:'',pin2:'',ativo:u.ativo!==false};renderUForm();renderUList();}
+function novoUsuario(){uEdit=null;uErrs={};uConfRm=false;ufd={nome:'',curto:'',curtoManual:false,matricula:'',perfil:temUsuarios()?(uFiltro||'operacao'):'admin',especialidade:'',turno:'A',oficina:filtroAtivo()?oficinaTela:'',pin:'',pin2:'',ativo:true};renderUForm();}
+function editarUsuario(id){const u=usuarios[id];if(!u)return;uEdit=id;uErrs={};uConfRm=false;ufd={nome:u.nome,curto:u.curto,curtoManual:true,matricula:u.matricula,perfil:PERFIS[u.perfil]?u.perfil:'operacao',especialidade:u.especialidade||'',turno:u.turno||'A',oficina:u.oficina||'',pin:'',pin2:'',ativo:u.ativo!==false};renderUForm();renderUList();}
 function renderUsr(){renderUResumo();renderUList();if(!ufd)novoUsuario();}
 function renderUResumo(){
   const c={};Object.values(usuarios).filter(u=>u.ativo!==false).forEach(u=>c[u.perfil]=(c[u.perfil]||0)+1);
@@ -652,6 +659,7 @@ function renderUForm(){
     <div class="cp"><label for="uf-mat">Matrícula</label><input type="text" id="uf-mat" maxlength="12" value="${esc(ufd.matricula)}" placeholder="20215" autocomplete="off" ${u?'readonly':''}>${u?'<span class="dica">A matrícula fica fixa depois do cadastro.</span>':''}${er('matricula')}</div>
   </div>
   <div class="cp"><span class="lb">Perfil de acesso</span><div class="perfis-op">${ORDEM_PERFIL.map(p=>`<button type="button" data-pf="${p}" data-p="${p}" aria-pressed="${ufd.perfil===p}"${p==='admin'&&!podeCriarAdmin()?' disabled title="Só um administrador pode criar administradores"':''}><b>${esc(PERFIS[p].nome)}</b><span>${esc(PERFIS[p].desc)}</span></button>`).join('')}</div>${er('perfil')}</div>
+  ${ufd.perfil==='manutencao'?`<div class="cp"><label for="uf-ofi">Oficina</label><select id="uf-ofi"><option value="">${oficinas.length?'Escolha a oficina':'Nenhuma oficina cadastrada'}</option>${oficinas.map(o=>`<option value="${esc(o.id)}"${o.id===ufd.oficina?' selected':''}>${esc(o.nome)}</option>`).join('')}</select>${uErrs.oficina?`<p class="erro">${esc(uErrs.oficina)}</p>`:'<span class="dica">O mecânico aparece só nos equipamentos desta oficina.</span>'}</div>`:''}
   ${false?`<div class="cp"><label for="uf-esp">Especialidade</label><select id="uf-esp"><option value="">Não informada</option>${ESPECIALIDADES.map(s=>`<option${ufd.especialidade===s?' selected':''}>${esc(s)}</option>`).join('')}</select><span class="dica">Técnicos de manutenção aparecem na lista de quem assume o atendimento.</span></div>`:''}
   <div class="g2">
     <div class="cp"><label for="uf-pin">${u?'Novo PIN (em branco mantém o atual)':'PIN (4 dígitos)'}</label><input type="password" id="uf-pin" maxlength="4" inputmode="numeric" autocomplete="new-password" value="${esc(ufd.pin)}" placeholder="••••">${er('pin')}</div>
@@ -669,7 +677,7 @@ function renderUForm(){
 function lerUForm(){
   const v=id=>{const el=document.getElementById(id);return el?el.value:undefined};
   ufd.nome=v('uf-nome')??ufd.nome;ufd.curto=v('uf-curto')??ufd.curto;if(!uEdit)ufd.matricula=(v('uf-mat')??ufd.matricula).trim();
-  ufd.pin=v('uf-pin')??'';ufd.pin2=v('uf-pin2')??'';const es=v('uf-esp');if(es!==undefined)ufd.especialidade=es;
+  ufd.pin=v('uf-pin')??'';ufd.pin2=v('uf-pin2')??'';const es=v('uf-esp');if(es!==undefined)ufd.especialidade=es;const of=v('uf-ofi');if(of!==undefined)ufd.oficina=of;
   const a=document.getElementById('uf-ativo');if(a)ufd.ativo=a.checked;
 }
 $('#u-form').addEventListener('input',ev=>{
@@ -707,6 +715,7 @@ function validarUsuario(){
   }
   if(!temUsuarios()&&ufd.perfil!=='admin')e.perfil='O primeiro usuário precisa ser administrador.';
   if(!podeCriarAdmin()&&(ufd.perfil==='admin'||(uEdit&&usuarios[uEdit].perfil==='admin')))e.perfil='Só um administrador pode criar ou alterar administradores.';
+  if(ufd.perfil==='manutencao'&&oficinas.length&&!oficinaPorId(ufd.oficina))e.oficina='Escolha a oficina do mecânico.';
   return e;
 }
 async function salvarUsuario(){
@@ -714,7 +723,7 @@ async function salvarUsuario(){
   lerUForm();uErrs=validarUsuario();
   if(Object.keys(uErrs).length){renderUForm();return;}
   const id=uEdit||'u'+ufd.matricula,ant=uEdit?usuarios[uEdit]:null;
-  const doc={id,nome:ufd.nome.trim(),curto:ufd.curto.trim(),matricula:ant?ant.matricula:ufd.matricula,perfil:ufd.perfil,especialidade:'',ativo:ufd.ativo,atualizadoEm:Date.now()};
+  const doc={id,nome:ufd.nome.trim(),curto:ufd.curto.trim(),matricula:ant?ant.matricula:ufd.matricula,perfil:ufd.perfil,especialidade:'',oficina:ufd.perfil==='manutencao'?(ufd.oficina||''):'',ativo:ufd.ativo,atualizadoEm:Date.now()};
   if(ufd.pin)doc.pin=ufd.pin;
   uSalvando=true;
   try{if(mode==='db'&&db)await db.doc('usuarios/'+id).set(doc);delete doc.pin;usuarios[id]=doc;}
@@ -776,6 +785,7 @@ function lerHor(e,btn){
 $('#dlg').addEventListener('input',ev=>{if(ev.target.id==='hor'){const er=$('#hor-err');if(er)er.hidden=true;document.querySelectorAll('#dlg [data-conf]').forEach(b=>delete b.dataset.conf);}});
 
 function renderCfg(){
+  if(typeof renderOficinaCfg==='function')renderOficinaCfg();
   $('#c-qrfixo').checked=qrFixo;$('#c-qrfixo-t').textContent=qrFixo?'Ligado':'Desligado';
   if(document.activeElement!==$('#c-link'))$('#c-link').value=opcoes.link||'';
   const pode=ehAdmin();['c-hor','c-obr','c-salto','c-link'].forEach(i=>{const el=document.getElementById(i);if(el)el.disabled=!pode;});$('#c-perm').hidden=pode;
@@ -813,15 +823,15 @@ function sugerirTag(){
 function frotasDoTipo(tipo){return frotas.filter(f=>f.tipo===tipo)}
 function novoFd(tipo){
   const t=tipo||filtroTipo||'adt';const fs=frotasDoTipo(t);
-  fd={tipo:t,grupo:fs[0]?fs[0].id:'__nova',nfNome:'',nfPrefixo:'',tag:'',tagManual:false,porte:fs[0]?fs[0].porte||'':'',modelo:'',ano:'',serie:'',horimetro:'',area:'',ativo:true};
+  fd={tipo:t,grupo:fs[0]?fs[0].id:'__nova',nfNome:'',nfPrefixo:'',tag:'',tagManual:false,porte:fs[0]?fs[0].porte||'':'',modelo:'',ano:'',serie:'',horimetro:'',area:'',oficina:filtroAtivo()?oficinaTela:'',ativo:true};
   fd.tag=sugerirTag();
 }
-function fdDe(e){return {tipo:e.tipo,grupo:frotaDe(e.grupo)?e.grupo:(frotasDoTipo(e.tipo)[0]||{id:'__nova'}).id,nfNome:'',nfPrefixo:'',tag:e.tag,tagManual:true,porte:e.porte||'',modelo:e.modelo||'',ano:e.ano||'',serie:e.serie||'',horimetro:e.horimetro??'',area:e.area||'',ativo:e.ativo!==false};}
+function fdDe(e){return {tipo:e.tipo,grupo:frotaDe(e.grupo)?e.grupo:(frotasDoTipo(e.tipo)[0]||{id:'__nova'}).id,nfNome:'',nfPrefixo:'',tag:e.tag,tagManual:true,porte:e.porte||'',modelo:e.modelo||'',ano:e.ano||'',serie:e.serie||'',horimetro:e.horimetro??'',area:e.area||'',oficina:e.oficina||'',ativo:e.ativo!==false};}
 
 function novo(){editando=null;errs={};confRm=false;novoFd();renderForm();}
 function editar(tag){if(!equip[tag])return;editando=tag;errs={};confRm=false;fd=fdDe(equip[tag]);renderForm();renderLista();}
 
-function renderCad(){$('#bt-areas').hidden=!ehAdmin();renderBiblio();renderLista();}
+function renderCad(){$('#bt-areas').hidden=!ehAdmin();$('#bt-oficinas').hidden=!ehAdmin();renderBiblio();renderLista();}
 function renderBiblio(){
   const cont={};Object.values(equip).forEach(e=>cont[e.tipo]=(cont[e.tipo]||0)+1);
   $('#biblio').innerHTML=TIPOS.map(t=>`<button type="button" class="bib" data-tipo="${t.id}" aria-pressed="${filtroTipo===t.id}">${icone(t.id)}<b>${esc(t.plural)}</b><span>${cont[t.id]||0} cadastrad${(cont[t.id]||0)===1?'o':'os'}</span></button>`).join('');
@@ -836,7 +846,7 @@ function renderLista(){
     const itens=lista.filter(e=>f.id==='_sem'?!frotaDe(e.grupo):e.grupo===f.id).sort((a,b)=>cmpTag(a.tag,b.tag));
     if(!itens.length)continue;
     html+=`<div class="fh">${esc(f.nome)}<span>${f.prefixo?esc(f.prefixo)+'-xx · ':''}${itens.length}</span></div>`;
-    html+=itens.map(e=>`<button type="button" class="linha${e.ativo===false?' off':''}" data-c="${e.status}" data-tag="${esc(e.tag)}" aria-current="${editando===e.tag}">${icone(e.tipo)}<span class="tg">${esc(e.tag)}${e.porte?`<small>${esc(e.porte)}</small>`:''}</span><span class="md">${esc(e.modelo||'—')}<small>${e.ano?'Ano '+esc(e.ano):''}</small></span><span class="ar">${esc(e.area||'—')}</span><span class="hr">${fmtH(e.horimetro)}</span><span class="sx">${e.ativo===false?'Fora do painel':ST[e.status].curto}</span></button>`).join('');
+    html+=itens.map(e=>`<button type="button" class="linha${e.ativo===false?' off':''}" data-c="${e.status}" data-tag="${esc(e.tag)}" aria-current="${editando===e.tag}">${icone(e.tipo)}<span class="tg">${esc(e.tag)}${e.porte?`<small>${esc(e.porte)}</small>`:''}</span><span class="md">${esc(e.modelo||'—')}<small>${e.ano?'Ano '+esc(e.ano):''}</small></span><span class="ar">${esc(e.area||'—')}${e.oficina&&nomeOficina(e.oficina)?' · '+esc(nomeOficina(e.oficina)):''}</span><span class="hr">${fmtH(e.horimetro)}</span><span class="sx">${e.ativo===false?'Fora do painel':ST[e.status].curto}</span></button>`).join('');
   }
   $('#cad-tab').innerHTML=html?`<div class="cab"><span></span><span>TAG</span><span>Modelo</span><span>Área</span><span class="hr">Horímetro</span><span style="text-align:right">Situação</span></div>${html}`:'<p class="vazio">Nenhum equipamento encontrado.</p>';
 }
@@ -860,6 +870,7 @@ function renderForm(){
   <div class="g2">
     <div class="cp"><label for="f-modelo">Fabricante e modelo</label><input type="text" id="f-modelo" value="${esc(fd.modelo)}" maxlength="40" placeholder="${esc(fr?((Object.values(equip).find(x=>x.grupo===fr.id)||{}).modelo||'CAT 745'):'CAT 745')}">${er('modelo')}</div>
     <div class="cp"><label for="f-area">Área</label><select id="f-area"><option value="">Sem área</option>${[...new Set([...listaAreas(),fd.area].filter(Boolean))].map(a=>`<option${a===fd.area?' selected':''}>${esc(a)}</option>`).join('')}</select>${ehAdmin()?'<button type="button" class="lnk" id="f-areas-ger">Gerenciar áreas</button>':'<span class="dica">As áreas são cadastradas pelo administrador.</span>'}</div>
+    <div class="cp"><label for="f-ofi">Oficina responsável</label><select id="f-ofi"><option value="">${oficinas.length?'Escolha a oficina':'Nenhuma oficina cadastrada'}</option>${oficinas.map(o=>`<option value="${esc(o.id)}"${o.id===fd.oficina?' selected':''}>${esc(o.nome)}</option>`).join('')}</select>${er('oficina')}${ehAdmin()?'<button type="button" class="lnk" id="f-ofi-ger">Gerenciar oficinas</button>':'<span class="dica">As oficinas são cadastradas pelo administrador.</span>'}</div>
     <div class="cp"><label for="f-hor">Horímetro atual (h)</label><input type="number" id="f-hor" value="${esc(fd.horimetro)}" min="0" step="1" inputmode="numeric" placeholder="8450">${er('horimetro')}</div>
     <div class="cp"><label for="f-ano">Ano de fabricação</label><input type="number" id="f-ano" value="${esc(fd.ano)}" min="1980" max="2030" step="1" inputmode="numeric" placeholder="2021">${er('ano')}</div>
     <div class="cp"><span class="lb">Painel da TV</span><label class="sw" for="f-ativo"><input type="checkbox" id="f-ativo"${fd.ativo?' checked':''}><span id="f-ativo-t">${fd.ativo?'Aparece no painel':'Fora do painel (vendido, parado longo prazo)'}</span></label></div>
@@ -879,7 +890,7 @@ function lerForm(){
   if(v('f-tag')!==undefined&&!editando){const t=v('f-tag').toUpperCase().trim();if(t!==fd.tag){fd.tag=t;}}
   if(v('f-nfn')!==undefined)fd.nfNome=v('f-nfn');
   if(v('f-nfp')!==undefined)fd.nfPrefixo=v('f-nfp').toUpperCase().replace(/[^A-Z]/g,'');
-  fd.modelo=v('f-modelo')??fd.modelo;fd.area=v('f-area')??fd.area;fd.horimetro=v('f-hor')??fd.horimetro;fd.ano=v('f-ano')??fd.ano;fd.serie=v('f-serie')??fd.serie;
+  fd.modelo=v('f-modelo')??fd.modelo;fd.area=v('f-area')??fd.area;fd.oficina=v('f-ofi')??fd.oficina;fd.horimetro=v('f-hor')??fd.horimetro;fd.ano=v('f-ano')??fd.ano;fd.serie=v('f-serie')??fd.serie;
   const at=document.getElementById('f-ativo');if(at)fd.ativo=at.checked;
 }
 
@@ -915,6 +926,7 @@ function validar(){
     if(!/^[A-Z]{1,4}$/.test(fd.nfPrefixo))e.nfPrefixo='Use de 1 a 4 letras.';
   }
   if(!fd.modelo.trim())e.modelo='Informe fabricante e modelo.';
+  if(oficinas.length&&!oficinaPorId(fd.oficina))e.oficina='Escolha a oficina responsável.';
   if(fd.horimetro!==''&&(isNaN(Number(fd.horimetro))||Number(fd.horimetro)<0))e.horimetro='Horímetro inválido.';
   if(fd.ano!==''&&(Number(fd.ano)<1980||Number(fd.ano)>2030))e.ano='Ano fora do intervalo.';
   return e;
@@ -932,7 +944,7 @@ async function salvar(){
   }
   const tag=editando||fd.tag;
   const base=editando?equip[editando]:{status:'operando',motivo:'',obs:'',tecnico:'',desde:Date.now(),inicioParada:0};
-  const doc={...base,tag,grupo,tipo:fd.tipo,porte:fd.tipo==='escavadeira'?fd.porte:'',modelo:fd.modelo.trim(),area:fd.area.trim(),horimetro:fd.horimetro===''?'':Number(fd.horimetro),ano:fd.ano===''?'':Number(fd.ano),serie:fd.serie.trim(),ativo:fd.ativo};
+  const doc={...base,tag,grupo,tipo:fd.tipo,porte:fd.tipo==='escavadeira'?fd.porte:'',modelo:fd.modelo.trim(),area:fd.area.trim(),oficina:fd.oficina||'',horimetro:fd.horimetro===''?'':Number(fd.horimetro),ano:fd.ano===''?'':Number(fd.ano),serie:fd.serie.trim(),ativo:fd.ativo};
   const eraNovo=!editando;
   salvando=true;
   try{
@@ -1119,8 +1131,8 @@ function montarTabelas(lista){
   const ps=lista.filter(p=>p.inicio>=de&&p.inicio<=ate).sort((a,b)=>b.inicio-a.inicio);
   const eqInfo=tag=>{const e=equip[tag]||{};return {frota:(frotaDe(e.grupo)||{}).nome||'',tipo:(TIPO[e.tipo]||{}).nome||''};};
   const T={};
-  T.Paradas={cols:['ID','Nº','TAG','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções','Responsáveis'],tipos:['s','n','s','s','s','s','s','d','d','n','s','s','n','n','n','s'],
-    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.numero??null,p.tag,i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length,(p.responsaveis||[]).map(r=>r.tecnico).join(' → ')||p.tecnico||''];})};
+  T.Paradas={cols:['ID','Nº','TAG','Oficina','Frota','Tipo','Motivo','Observação','Início','Fim','Duração (h)','Situação','Técnico','Horímetro início','Horímetro fim','Correções','Responsáveis'],tipos:['s','n','s','s','s','s','s','s','d','d','n','s','s','n','n','n','s'],
+    rows:ps.map(p=>{const i=eqInfo(p.tag);return [p.id,p.numero??null,p.tag,nomeOficina(p.oficina||(equip[p.tag]||{}).oficina),i.frota,i.tipo,p.motivo||'',p.obs||'',p.inicio,p.fim||null,horas((p.cancelada?(p.fim||now):(p.fim||now))-p.inicio),p.cancelada?'Cancelada':(p.fim?'Encerrada':'Em andamento'),p.tecnico||'',p.horIni??null,p.horFim??null,(p.correcoes||[]).length,(p.responsaveis||[]).map(r=>r.tecnico).join(' → ')||p.tecnico||''];})};
   const et=[];
   for(const p of ps){const es=(p.etapas||[]).slice().sort((a,b)=>a.t-b.t);es.forEach((s,k)=>{if(s.status==='operando')return;const fim=k+1<es.length?es[k+1].t:(p.fim||null);et.push([p.id,p.tag,(ST[s.status]||{rot:s.status}).rot,s.t,fim,horas((fim||now)-s.t),s.por||'',p.cancelada?'Sim':'Não']);});}
   T.Etapas={cols:['Parada','TAG','Etapa','Início','Fim','Duração (h)','Registrado por','Parada cancelada'],tipos:['s','s','s','d','d','n','s','s'],rows:et};
@@ -1129,10 +1141,10 @@ function montarTabelas(lista){
   const pk=(typeof pecas==='object'?Object.values(pecas):[]).filter(i=>(i.criadoEm||0)>=de&&(i.criadoEm||0)<=ate).sort((a,b)=>(b.criadoEm||0)-(a.criadoEm||0));
   T.Pecas={cols:['Parada nº','TAG','Peça','Código','Quantidade','Solicitada em','Solicitada por','Ordem de compra','Chegou em','Recebida por','Situação'],tipos:['n','s','s','s','n','d','s','s','d','s','s'],
     rows:pk.map(i=>[i.numero??null,i.tag||'',i.descricao||'',i.codigo||'',i.qtd??null,i.criadoEm||null,i.criadoPor||'',i.oc||'',i.chegou?i.chegouEm||null:null,i.chegouPor||'',i.cancelada?'Cancelada':i.chegou?'Chegou':i.oc?'Com ordem de compra':'Aguardando ordem de compra'])};
-  T.Equipamentos={cols:['TAG','Frota','Tipo','Porte','Modelo','Área','Ano','Horímetro','Situação atual','No painel'],tipos:['s','s','s','s','s','s','n','n','s','s'],
-    rows:Object.values(equip).sort((a,b)=>cmpTag(a.tag,b.tag)).map(e=>{const i=eqInfo(e.tag);return [e.tag,i.frota,i.tipo,e.porte||'',e.modelo||'',e.area||'',e.ano===''?null:e.ano??null,e.horimetro===''?null:e.horimetro??null,(ST[e.status]||{rot:e.status}).rot,e.ativo===false?'Não':'Sim'];})};
-  T.Usuarios={cols:['Matrícula','Nome','Nome curto','Perfil','Ativo'],tipos:['s','s','s','s','s'],
-    rows:Object.values(usuarios).sort((a,b)=>a.nome.localeCompare(b.nome)).map(u=>[u.matricula,u.nome,u.curto,(PERFIS[u.perfil]||{nome:u.perfil}).nome,u.ativo===false?'Não':'Sim'])};
+  T.Equipamentos={cols:['TAG','Oficina','Frota','Tipo','Porte','Modelo','Área','Ano','Horímetro','Situação atual','No painel'],tipos:['s','s','s','s','s','s','s','n','n','s','s'],
+    rows:Object.values(equip).sort((a,b)=>cmpTag(a.tag,b.tag)).map(e=>{const i=eqInfo(e.tag);return [e.tag,nomeOficina(e.oficina),i.frota,i.tipo,e.porte||'',e.modelo||'',e.area||'',e.ano===''?null:e.ano??null,e.horimetro===''?null:e.horimetro??null,(ST[e.status]||{rot:e.status}).rot,e.ativo===false?'Não':'Sim'];})};
+  T.Usuarios={cols:['Matrícula','Nome','Nome curto','Perfil','Oficina','Ativo'],tipos:['s','s','s','s','s','s'],
+    rows:Object.values(usuarios).sort((a,b)=>a.nome.localeCompare(b.nome)).map(u=>[u.matricula,u.nome,u.curto,(PERFIS[u.perfil]||{nome:u.perfil}).nome,nomeOficina(u.oficina),u.ativo===false?'Não':'Sim'])};
   return T;
 }
 
@@ -1204,7 +1216,7 @@ async function renderDados(recarregar){
   $('#d-de').value=dDe;$('#d-ate').value=dAte;
   if(recarregar||!dCache){dCarregando=true;$('#d-resumo').innerHTML='<p class="vazio">Carregando dados…</p>';dCache=await carregarParadas();dCarregando=false;}
   const T=montarTabelas(dCache);
-  const ab=T.Paradas.rows.filter(r=>r[10]==='Em andamento').length,enc=T.Paradas.rows.filter(r=>r[10]==='Encerrada'),mttr=enc.length?(enc.reduce((s,r)=>s+r[9],0)/enc.length):null;
+  const ab=T.Paradas.rows.filter(r=>r[11]==='Em andamento').length,enc=T.Paradas.rows.filter(r=>r[11]==='Encerrada'),mttr=enc.length?(enc.reduce((s,r)=>s+r[10],0)/enc.length):null;
   $('#d-resumo').innerHTML=[['Paradas no período',T.Paradas.rows.length],['Em andamento',ab],['Tempo médio de parada',mttr==null?'—':String(Math.round(mttr*10)/10).replace('.',LANG==='en'?'.':',')+' h'],['Etapas',T.Etapas.rows.length],['Correções',T.Correcoes.rows.length],['Equipamentos',T.Equipamentos.rows.length]]
     .map(([l,v])=>`<div class="k"><div class="k-l">${esc(l)}</div><div class="k-v">${esc(v)}</div></div>`).join('');
   $('#d-tabs').innerHTML=TABELAS.map(n=>`<button type="button" data-dt="${n}" aria-pressed="${dTab===n}">${esc(NOME_TAB[n])} <span>${T[n].rows.length}</span></button>`).join('');
@@ -1412,7 +1424,8 @@ $('#areas-dlg').addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.i
 $('#areas').addEventListener('click',e=>{if(e.target.id==='areas')fecharAreas();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#areas').hidden)fecharAreas();});
 $('#bt-areas').addEventListener('click',abrirAreas);
-$('#cad-form').addEventListener('click',ev=>{if(ev.target.closest('#f-areas-ger')){lerForm();abrirAreas();}});
+$('#bt-oficinas').addEventListener('click',abrirOficinas);
+$('#cad-form').addEventListener('click',ev=>{if(ev.target.closest('#f-areas-ger')){lerForm();abrirAreas();}if(ev.target.closest('#f-ofi-ger')){lerForm();abrirOficinas();}});
 
 function setVista(v){
   vista=v;
@@ -1481,7 +1494,7 @@ montarFrota(estrutura());vista=({'#cadastro':'cadastro','#config':'config','#usu
   },()=>{setSync('erro');});
   db.doc('log/feed').onSnapshot(s=>{
     const ev=(s.exists&&Array.isArray(s.data().eventos))?s.data().eventos.slice():[];
-    if(!primeiroFeed){ev.filter(x=>x.t>ultimoT).reverse().forEach(x=>{toast(x);if(window.alarmeEvento)alarmeEvento(x);});}
+    if(!primeiroFeed){ev.filter(x=>x.t>ultimoT&&(!filtroAtivo()||(equip[x.tag]&&daTela(equip[x.tag])))).reverse().forEach(x=>{toast(x);if(window.alarmeEvento)alarmeEvento(x);});}
     primeiroFeed=false;if(ev[0])ultimoT=Math.max(ultimoT,ev[0].t);feedDb=ev;
     eventos=ev;render();
   },()=>{});
