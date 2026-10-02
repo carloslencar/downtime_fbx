@@ -252,15 +252,16 @@ async function gravar({ usuario, col, id, op, dados }) {
         }
       }
     }
-    // Parada preventiva liberada pela manutenção: registra a preventiva feita (e desfaz se a
-    // liberação for desfeita ou a parada cancelada).
+    // Parada preventiva liberada pela manutenção: a preventiva agendada sai da lista e vai para o
+    // histórico (e volta se a liberação for desfeita ou a parada cancelada).
     if (col === 'paradas' && ((novo && novo.tipo === 'preventiva') || (anterior && anterior.tipo === 'preventiva'))) {
       const par = novo || anterior, tag = par.tag;
       const lib = novo && novo.tipo === 'preventiva' && !novo.cancelada ? (novo.etapas || []).find(e => e && e.status === 'liberado') : null;
       await c.query('select pg_advisory_xact_lock(hashtext($1))', ['preventivas/' + tag]);
       const pr = await c.query("select dados from docs where colecao = 'preventivas' and id = $1", [tag]);
-      const pv = pr.rowCount ? { ...pr.rows[0].dados } : { tag, historico: [], programada: null };
+      const pv = pr.rowCount ? { ...pr.rows[0].dados } : { tag, agendadas: [], historico: [] };
       const hist = Array.isArray(pv.historico) ? pv.historico.slice() : [];
+      let ag = Array.isArray(pv.agendadas) ? pv.agendadas.slice() : [];
       const i = hist.findIndex(h => h && h.paradaId === id);
       let mudou = false;
       if (lib && i < 0) {
@@ -268,14 +269,20 @@ async function gravar({ usuario, col, id, op, dados }) {
         const eqd = er.rowCount ? er.rows[0].dados : {};
         const hor = numOuNull(novo.horIni) ?? numOuNull(novo.horFim) ?? numOuNull(eqd.horimetro);
         const pm = novo.pm && typeof novo.pm === 'object' ? novo.pm : {};
-        hist.push({ pos: numOuNull(pm.pos), nome: pm.nome || 'Preventiva', horimetro: hor, em: Number(lib.t) || Date.now(),
-          paradaId: id, numero: novo.numero || null, por: lib.por || '', origem: 'parada' });
-        pv.programada = null;
+        const a = ag.find(x => x && pm.id && x.id === pm.id);
+        if (a) ag = ag.filter(x => x !== a);
+        hist.push({ id: pm.id || ('h' + Date.now().toString(36)), nome: (a && a.nome) || pm.nome || 'Preventiva', alvo: a ? numOuNull(a.horimetro) : numOuNull(pm.alvo),
+          horimetro: hor, em: Number(lib.t) || Date.now(), paradaId: id, numero: novo.numero || null, por: lib.por || '', origem: 'parada', agendada: a || null });
         mudou = true;
-      } else if (!lib && i >= 0) { hist.splice(i, 1); mudou = true; }
+      } else if (!lib && i >= 0) {
+        const h = hist.splice(i, 1)[0];
+        if (h && h.agendada && !ag.some(x => x.id === h.agendada.id)) ag.push(h.agendada);
+        mudou = true;
+      }
       if (mudou) {
-        hist.sort((a, b) => (a.em || 0) - (b.em || 0));
-        extras.push(await escreverTx(c, 'preventivas', tag, { ...pv, tag, historico: hist.slice(-200), atualizadoEm: Date.now() }, uid0));
+        hist.sort((x, y) => (x.em || 0) - (y.em || 0));
+        ag.sort((x, y) => Number(x.horimetro) - Number(y.horimetro));
+        extras.push(await escreverTx(c, 'preventivas', tag, { ...pv, tag, agendadas: ag, historico: hist.slice(-200), atualizadoEm: Date.now() }, uid0));
       }
     }
     if (col !== 'log') {

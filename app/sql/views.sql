@@ -49,7 +49,7 @@ $$ select case s
     when 'admin'      then 'Administrador'
     else s end $$;
 
-drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas, vw_pecas, vw_oficinas, vw_leituras, vw_preventivas cascade;
+drop view if exists vw_paradas, vw_etapas, vw_correcoes, vw_equipamentos, vw_eventos, vw_usuarios, vw_frotas, vw_pecas, vw_oficinas, vw_leituras, vw_preventivas, vw_preventivas_agendadas cascade;
 
 create view vw_oficinas as
 select o->>'id' as oficina_id, o->>'nome' as oficina
@@ -221,20 +221,34 @@ from docs l
 left join vw_equipamentos eq on eq.tag = l.dados->>'tag'
 where l.colecao = 'leituras';
 
--- Preventivas feitas: uma linha por preventiva registrada (pela liberação da parada ou pelo planejamento).
+-- Preventivas feitas: uma linha por preventiva (pela liberação da parada ou marcada pelo planejamento).
 create view vw_preventivas as
 select p.id                                   as tag,
        eq.oficina,
        eq.frota,
        nullif(h->>'nome', '')                 as preventiva,
-       dt_num(h->>'pos')::int                 as posicao_ciclo,
+       dt_num(h->>'alvo')                     as horimetro_previsto,
        dt_num(h->>'horimetro')                as horimetro,
        dt_ts(dt_ms(h->>'em'))                 as data,
        dt_num(h->>'numero')::int              as parada_numero,
        nullif(h->>'paradaId', '')             as parada_id,
-       case h->>'origem' when 'parada' then 'Parada liberada' else 'Registro do planejamento' end as origem,
+       case h->>'origem' when 'parada' then 'Parada liberada' else 'Marcada pelo planejamento' end as origem,
        nullif(h->>'por', '')                  as registrado_por
 from docs p
 cross join lateral jsonb_array_elements(coalesce(p.dados->'historico', '[]'::jsonb)) h
+left join vw_equipamentos eq on eq.tag = p.id
+where p.colecao = 'preventivas';
+
+-- Preventivas agendadas (ainda não feitas): horímetro previsto e quanto falta.
+create view vw_preventivas_agendadas as
+select p.id                                   as tag,
+       eq.oficina,
+       eq.frota,
+       nullif(a->>'nome', '')                 as preventiva,
+       dt_num(a->>'horimetro')                as horimetro_previsto,
+       eq.horimetro                           as horimetro_atual,
+       dt_num(a->>'horimetro') - eq.horimetro as faltam_h
+from docs p
+cross join lateral jsonb_array_elements(coalesce(p.dados->'agendadas', '[]'::jsonb)) a
 left join vw_equipamentos eq on eq.tag = p.id
 where p.colecao = 'preventivas';

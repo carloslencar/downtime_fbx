@@ -161,16 +161,14 @@
   </div>
   <div class="vista frm" id="v-prev" hidden>
     <div class="pv-top">
-      <div class="seg pv-tabs" id="pv-tabs" role="group" aria-label="Seção de preventivas"><button type="button" data-pt="lista">Preventivas</button><button type="button" data-pt="hor">Horímetros</button><button type="button" data-pt="planos">Planos</button></div>
+      <div class="seg pv-tabs" id="pv-tabs" role="group" aria-label="Seção de preventivas"><button type="button" data-pt="lista">Preventivas</button><button type="button" data-pt="hor">Horímetros</button></div>
       <p class="pv-sub" id="pv-sub"></p>
     </div>
     <div id="pv-lista-v" hidden>
       <section class="kpis dk" id="pv-resumo" aria-label="Resumo das preventivas"></section>
       <section class="painel p-barra">
-        <div class="seg" id="pv-filtro" role="group" aria-label="Mostrar"><button type="button" data-f="atencao">Precisam de atenção</button><button type="button" data-f="todas">Todas</button></div>
-        <input type="search" id="pv-busca" placeholder="Buscar TAG, frota ou plano" aria-label="Buscar equipamento">
-        <span class="sp"></span>
-        <button type="button" class="ghost-sm" id="pv-sugerir" hidden></button>
+        <div class="seg" id="pv-filtro" role="group" aria-label="Mostrar"><button type="button" data-f="todos">Todos</button><button type="button" data-f="atencao">Vencidas e próximas</button><button type="button" data-f="sem">Sem agendamento</button></div>
+        <input type="search" id="pv-busca" placeholder="Buscar TAG, frota ou preventiva" aria-label="Buscar equipamento">
       </section>
       <p class="p-msg" id="pv-msg" role="status" hidden></p>
       <section class="painel pv-tab" id="pv-tab"></section>
@@ -184,12 +182,6 @@
       </section>
       <p class="p-msg" id="hv-msg" role="status" hidden></p>
       <section class="painel hv-tab" id="hv-tab"></section>
-    </div>
-    <div id="pv-planos-v" hidden>
-      <div class="cad-corpo">
-        <section class="painel"><div class="cad-bar"><span class="cad-n" id="pl-n"></span><span class="sp"></span><button type="button" class="novo" id="pl-novo">+ Novo plano</button></div><div id="pl-lista" class="pl-lista2"></div></section>
-        <section class="painel cad-form" id="pl-form" aria-label="Plano de preventiva"></section>
-      </div>
     </div>
   </div>
   <div class="vista" id="v-lock" hidden>
@@ -224,7 +216,7 @@
           <li>Repita para cada tabela que quiser usar nos relatórios.</li>
           <li>Para atualizar, clique em Dados, Atualizar Tudo. O Excel busca os dados direto do servidor, sem baixar arquivo.</li>
         </ol>
-        <div class="cp"><label for="d-pq-tab">Tabela</label><select id="d-pq-tab"><option value="paradas">Paradas</option><option value="etapas">Etapas</option><option value="correcoes">Correções</option><option value="pecas">Peças</option><option value="leituras">Leituras de horímetro</option><option value="preventivas">Preventivas feitas</option><option value="equipamentos">Equipamentos</option><option value="eventos">Eventos (histórico completo)</option><option value="usuarios">Usuários</option></select></div>
+        <div class="cp"><label for="d-pq-tab">Tabela</label><select id="d-pq-tab"><option value="paradas">Paradas</option><option value="etapas">Etapas</option><option value="correcoes">Correções</option><option value="pecas">Peças</option><option value="leituras">Leituras de horímetro</option><option value="preventivas">Preventivas feitas</option><option value="agendadas">Preventivas agendadas</option><option value="equipamentos">Equipamentos</option><option value="eventos">Eventos (histórico completo)</option><option value="usuarios">Usuários</option></select></div>
         <div class="mcode"><div class="mh"><span>Consulta da tabela <b id="d-m-tab"></b></span><button type="button" id="d-copiar">Copiar código</button></div><pre id="d-m"></pre></div>
         <div class="cp"><label for="d-link">Link direto da tabela (CSV)</label><input type="text" id="d-link" readonly spellcheck="false"></div>
         <p class="nota">O código e o link levam a chave de acesso aos relatórios: quem tiver a chave consegue ler os dados. Compartilhe só com quem monta os relatórios. <button type="button" class="lnk" id="d-chave">Gerar nova chave</button></p>

@@ -95,7 +95,7 @@ test('API com banco', { skip: !URL_DB && 'defina DATABASE_URL para rodar' }, asy
       assert.equal((await req('GET', `/api/relatorios/${n}.csv?chave=chave-teste`)).status, 200, n);
     }
     assert.equal((await req('GET', '/api/relatorios', null, cOp)).status, 403);
-    assert.equal((await req('GET', '/api/relatorios', null, cAdm)).j.tabelas.length, 9);
+    assert.equal((await req('GET', '/api/relatorios', null, cAdm)).j.tabelas.length, 10);
   });
 
   await t.test('paradas recebem número sequencial', async () => {
@@ -239,35 +239,36 @@ test('API com banco', { skip: !URL_DB && 'defina DATABASE_URL para rodar' }, asy
     assert.match(csv.txt, /DZ-01/);
   });
 
-  await t.test('preventiva: planos, parada preventiva liberada registra a PM', async () => {
+  await t.test('preventiva agendada por equipamento: liberação da parada preventiva marca como feita', async () => {
     const cP = (await req('POST', '/api/login', { id: 'u50001', pin: '5555' })).cookie;
     const cMan = (await req('POST', '/api/login', { id: 'u30101', pin: '1234' })).cookie;
-    assert.equal((await req('PUT', '/api/docs/config/planos', { lista: [{ id: 'p1', nome: 'X', intervalos: [250, 600], frotas: ['te'] }] }, cP)).status, 400);
-    assert.equal((await req('PUT', '/api/docs/config/planos', { lista: [{ id: 'p1', nome: 'Dozers', intervalos: [250, 500, 1000], aviso: 50, frotas: ['te'] }] }, cOp)).status, 403);
-    assert.equal((await req('PUT', '/api/docs/config/planos', { lista: [{ id: 'p1', nome: 'Dozers', intervalos: [250, 500, 1000], aviso: 50, frotas: ['te'] }] }, cP)).status, 200);
-    // última preventiva informada pelo planejamento
-    assert.equal((await req('PUT', '/api/docs/preventivas/DZ-02', { tag: 'DZ-02', historico: [{ pos: 500, nome: 'PM 500', horimetro: 1000, em: Date.now() - 86400000, origem: 'manual' }], programada: '2026-10-05' }, cMan)).status, 403);
-    assert.equal((await req('PUT', '/api/docs/preventivas/DZ-02', { tag: 'DZ-02', historico: [{ pos: 500, nome: 'PM 500', horimetro: 1000, em: Date.now() - 86400000, origem: 'manual' }], programada: '2026-10-05' }, cP)).status, 200);
+    assert.equal((await req('PUT', '/api/docs/config/preventiva', { aviso: 40 }, cOp)).status, 403);
+    assert.equal((await req('PUT', '/api/docs/config/preventiva', { aviso: 40 }, cP)).status, 200);
+    const doc = { tag: 'DZ-02', agendadas: [{ id: 'a1', nome: 'PM 500', horimetro: 5000 }, { id: 'a2', nome: 'Troca de óleo', horimetro: 5250 }], historico: [] };
+    assert.equal((await req('PUT', '/api/docs/preventivas/DZ-02', doc, cMan)).status, 403);
+    assert.equal((await req('PUT', '/api/docs/preventivas/DZ-02', doc, cP)).status, 200);
     const now = Date.now(), pid = 'DZ-02_' + now;
-    const par = { id: pid, tag: 'DZ-02', tipo: 'preventiva', pm: { pos: 750, nome: 'PM 250' }, inicio: now, fim: null, motivo: 'Preventiva', horIni: 1260, etapas: [{ status: 'aguardando', t: now, por: 'Operação' }], correcoes: [] };
+    const par = { id: pid, tag: 'DZ-02', tipo: 'preventiva', pm: { id: 'a1', nome: 'PM 500', alvo: 5000 }, inicio: now, fim: null, motivo: 'Preventiva', horIni: 4990, etapas: [{ status: 'aguardando', t: now, por: 'Operação' }], correcoes: [] };
     await req('PUT', '/api/docs/paradas/' + pid, par, cOp);
     let pv = (await req('GET', '/api/docs/preventivas/DZ-02')).j.data;
-    assert.equal(pv.historico.length, 1);
+    assert.equal(pv.agendadas.length, 2);
     par.etapas.push({ status: 'em_manutencao', t: now + 1 }, { status: 'liberado', t: now + 2, por: 'Manutenção · J. Souza' });
     await req('PUT', '/api/docs/paradas/' + pid, par, cMan);
     pv = (await req('GET', '/api/docs/preventivas/DZ-02')).j.data;
-    assert.equal(pv.historico.length, 2);
-    assert.deepEqual([pv.historico[1].pos, pv.historico[1].horimetro, pv.historico[1].paradaId], [750, 1260, pid]);
-    assert.equal(pv.programada, null);
-    // liberação desfeita: o registro sai
+    assert.deepEqual(pv.agendadas.map(a => a.id), ['a2']);
+    assert.deepEqual([pv.historico[0].nome, pv.historico[0].alvo, pv.historico[0].horimetro, pv.historico[0].paradaId], ['PM 500', 5000, 4990, pid]);
+    // liberação desfeita: volta para as agendadas
     par.etapas.pop();
     await req('PUT', '/api/docs/paradas/' + pid, par, cMan);
     pv = (await req('GET', '/api/docs/preventivas/DZ-02')).j.data;
-    assert.equal(pv.historico.length, 1);
+    assert.deepEqual(pv.agendadas.map(a => a.id), ['a1', 'a2']);
+    assert.equal(pv.historico.length, 0);
     par.etapas.push({ status: 'liberado', t: now + 3, por: 'Manutenção · J. Souza' });
     await req('PUT', '/api/docs/paradas/' + pid, par, cMan);
     const csv = await req('GET', '/api/relatorios/preventivas.csv?chave=chave-teste');
-    assert.match(csv.txt, /DZ-02,.*PM 250/);
+    assert.match(csv.txt, /DZ-02,.*PM 500/);
+    const ag = await req('GET', '/api/relatorios/agendadas.csv?chave=chave-teste');
+    assert.match(ag.txt, /DZ-02,.*Troca de óleo/);
     const pcsv = await req('GET', '/api/relatorios/paradas.csv?chave=chave-teste');
     assert.match(pcsv.txt, /Preventiva/);
   });

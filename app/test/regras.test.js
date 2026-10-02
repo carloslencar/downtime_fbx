@@ -79,9 +79,9 @@ test('horímetro e preventivas: só planejamento e administrador', () => {
   assert.equal(verificar({ usuario: man, col: 'leituras', id: 'ADT-01_1', op: 'delete' }).status, 403);
   assert.equal(verificar({ usuario: plan, col: 'leituras', id: 'ADT-01_1', op: 'set', novo: { ...lei, capturadaEm: Date.now() + 3600000 } }).status, 400);
   assert.equal(verificar({ usuario: plan, col: 'leituras', id: 'ADT-01_1', op: 'set', novo: { ...lei, valor: '' } }).status, 400);
-  assert.equal(verificar({ usuario: plan, col: 'config', id: 'planos', op: 'set', novo: { lista: [{ nome: 'A', intervalos: [250, 500] }] } }), null);
-  assert.equal(verificar({ usuario: plan, col: 'config', id: 'planos', op: 'set', novo: { lista: [{ nome: 'A', intervalos: [250, 600] }] } }).status, 400);
-  assert.equal(verificar({ usuario: man, col: 'config', id: 'planos', op: 'set', novo: { lista: [] } }).status, 403);
+  assert.equal(verificar({ usuario: plan, col: 'config', id: 'preventiva', op: 'set', novo: { aviso: 50 } }), null);
+  assert.equal(verificar({ usuario: man, col: 'config', id: 'preventiva', op: 'set', novo: { aviso: 50 } }).status, 403);
+  assert.equal(verificar({ usuario: plan, col: 'preventivas', id: 'ADT-01', op: 'set', novo: { tag: 'ADT-01', agendadas: [{ id: 'a', nome: 'PM', horimetro: '' }] } }).status, 400);
   assert.equal(verificar({ usuario: plan, col: 'preventivas', id: 'ADT-01', op: 'set', novo: { tag: 'ADT-01', historico: [] } }), null);
   assert.equal(verificar({ usuario: op, col: 'preventivas', id: 'ADT-01', op: 'set', novo: { tag: 'ADT-01', historico: [] } }).status, 403);
   assert.equal(verificar({ usuario: plan, col: 'preventivas', id: 'ADT-01', op: 'delete' }).status, 403);

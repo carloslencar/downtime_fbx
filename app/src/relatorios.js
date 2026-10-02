@@ -52,7 +52,11 @@ const TABELAS = {
   },
   preventivas: {
     view: 'vw_preventivas', ordem: 'data desc', filtroData: 'data',
-    cols: { tag: 'TAG', oficina: 'Oficina', frota: 'Frota', preventiva: 'Preventiva', horimetro: 'Horímetro', data: 'Data', parada_numero: 'Parada nº', origem: 'Origem', registrado_por: 'Registrado por' }
+    cols: { tag: 'TAG', oficina: 'Oficina', frota: 'Frota', preventiva: 'Preventiva', horimetro_previsto: 'Horímetro previsto', horimetro: 'Horímetro', data: 'Data', parada_numero: 'Parada nº', origem: 'Origem', registrado_por: 'Registrado por' }
+  },
+  agendadas: {
+    view: 'vw_preventivas_agendadas', ordem: 'faltam_h',
+    cols: { tag: 'TAG', oficina: 'Oficina', frota: 'Frota', preventiva: 'Preventiva', horimetro_previsto: 'Horímetro previsto', horimetro_atual: 'Horímetro atual', faltam_h: 'Faltam (h)' }
   },
   usuarios: {
     view: 'vw_usuarios', ordem: 'nome',
@@ -67,7 +71,7 @@ const TIPOS_M = {
   'Correções': 'Int64.Type', 'Ordem': 'Int64.Type', 'Ano': 'Int64.Type',
   'Parada cancelada': 'logical', 'No painel': 'logical', 'Ativo': 'logical',
   'Nº': 'Int64.Type', 'Transferências': 'Int64.Type', 'Parada nº': 'Int64.Type', 'Quantidade': 'number', 'Solicitada em': 'datetime', 'OC informada em': 'datetime',
-  'Chegou em': 'datetime', 'Chegou': 'logical', 'Espera (h)': 'number', 'Média (h/dia)': 'number', 'Coletada em': 'datetime', 'Lançada em': 'datetime'
+  'Chegou em': 'datetime', 'Chegou': 'logical', 'Espera (h)': 'number', 'Média (h/dia)': 'number', 'Coletada em': 'datetime', 'Horímetro previsto': 'number', 'Horímetro atual': 'number', 'Faltam (h)': 'number', 'Lançada em': 'datetime'
 };
 
 async function chave() {

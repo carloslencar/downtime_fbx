@@ -38,15 +38,10 @@ function verificar({ usuario, col, id, op, anterior, novo, adminsAtivos = 0, haU
     if (op !== 'set') return negar(403, 'Configurações não podem ser removidas.');
     if (id === 'frotas') return null;
     if (id === 'opcoes' || id === 'areas' || id === 'oficinas') return admin ? null : negar(403, 'Só o administrador muda estas opções.');
-    if (id === 'planos') {
-      if (!plan) return negar(403, 'Os planos de preventiva são cadastrados pelo planejamento.');
-      if (!Array.isArray(novo.lista)) return negar(400, 'Documento inválido.');
-      for (const p of novo.lista) {
-        const iv = Array.isArray(p && p.intervalos) ? p.intervalos.map(Number) : [];
-        if (!p || !String(p.nome || '').trim() || !iv.length || iv.some(n => !Number.isInteger(n) || n <= 0 || n % iv[0] !== 0)) {
-          return negar(400, 'Plano inválido: os intervalos precisam ser múltiplos do primeiro (ex.: 250, 500, 1000).');
-        }
-      }
+    if (id === 'preventiva') {
+      if (!plan) return negar(403, 'As preventivas são controladas pelo planejamento.');
+      const a = Number(novo.aviso);
+      if (!Number.isFinite(a) || a < 0) return negar(400, 'Aviso inválido.');
       return null;
     }
     return negar(404, 'Configuração desconhecida.');
@@ -83,7 +78,10 @@ function verificar({ usuario, col, id, op, anterior, novo, adminsAtivos = 0, haU
   if (col === 'preventivas') {
     if (op === 'delete') return admin ? null : negar(403, 'Só o administrador remove este registro.');
     if (!plan) return negar(403, 'As preventivas são controladas pelo planejamento.');
-    if (!Array.isArray(novo.historico || [])) return negar(400, 'Documento inválido.');
+    if (!Array.isArray(novo.historico || []) || !Array.isArray(novo.agendadas || [])) return negar(400, 'Documento inválido.');
+    for (const a of novo.agendadas || []) {
+      if (!a || !a.id || !Number.isFinite(Number(a.horimetro)) || Number(a.horimetro) < 0 || a.horimetro === '' || a.horimetro == null) return negar(400, 'Informe o horímetro de cada preventiva agendada.');
+    }
     return null;
   }
   if (col === 'pecas') {

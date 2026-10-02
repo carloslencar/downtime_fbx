@@ -61,8 +61,8 @@ Lembre de deixar o som da TV ligado e com volume.
 
 ## Preventivas no painel
 
-Quando a preventiva de um equipamento está próxima (dentro do aviso do plano) ou vencida, o cartão ganha o selo `PM` e
-mostra a revisão e as horas que faltam em verde-água (vencida: selo cheio e borda). A legenda do painel inclui
+Quando a próxima preventiva agendada de um equipamento está perto (dentro do aviso, padrão 50 h) ou vencida, o cartão
+ganha o selo `PM` e mostra o nome da preventiva e as horas que faltam em verde-água (vencida: selo cheio e borda). A legenda do painel inclui
 "Preventiva próxima".
 
 ## Comportamento

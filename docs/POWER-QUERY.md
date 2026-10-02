@@ -19,7 +19,8 @@ os dados novos.
 | Correções | correção ou cancelamento | Parada, Data, Por, Campo, De, Para, Justificativa |
 | Peças | peça solicitada | Parada nº, TAG, Peça, Código, Quantidade, Solicitada em/por, Ordem de compra, Chegou em, Espera (h), Situação |
 | Leituras | leitura de horímetro | TAG, Oficina, Frota, Horímetro, Coletada em, Lançada em, Lançada por, Origem |
-| Preventivas | preventiva feita | TAG, Oficina, Frota, Preventiva (PM 250…), Horímetro, Data, Parada nº, Origem |
+| Preventivas | preventiva feita | TAG, Oficina, Frota, Preventiva, Horímetro previsto, Horímetro, Data, Parada nº, Origem |
+| Agendadas | preventiva agendada | TAG, Oficina, Frota, Preventiva, Horímetro previsto, Horímetro atual, Faltam (h) |
 | Equipamentos | equipamento | TAG, Oficina, Frota, Tipo, Porte, Modelo, Área, Ano, Horímetro, Leitura do horímetro, Média (h/dia), Situação atual |
 | Eventos | lançamento (histórico completo) | Data, TAG, Situação, Ação, Por, Detalhe, Horímetro |
 | Usuários | usuário | Matrícula, Nome, Perfil, Oficina, Ativo (nunca o PIN) |
@@ -51,7 +52,8 @@ Esse usuário só lê as views (não enxerga PINs nem tabelas internas):
 | `vw_correcoes` | correções e cancelamentos com justificativa |
 | `vw_pecas` | peças solicitadas, ordem de compra, chegada e tempo de espera |
 | `vw_leituras` | leituras de horímetro com a hora da coleta e a do lançamento |
-| `vw_preventivas` | preventivas feitas (pela liberação da parada ou registradas pelo planejamento) |
+| `vw_preventivas` | preventivas feitas (pela liberação da parada ou marcadas pelo planejamento) |
+| `vw_preventivas_agendadas` | preventivas agendadas com o horímetro previsto e quanto falta |
 | `vw_equipamentos` | cadastro e situação atual |
 | `vw_eventos` | todos os eventos lançados (histórico completo) |
 | `vw_usuarios` | usuários sem PIN |

@@ -758,3 +758,29 @@ body.ajuste .eq-pm{font-size:clamp(9px,calc(12px * var(--s,1)),16px);padding:2px
   .hv-barra select{min-width:0;width:100%}.hv-bus{flex:1 1 100%}
 }
 .pvt .n::before{content:none!important}
+
+/* Preventivas agendadas por equipamento */
+.pv-aviso{display:flex;align-items:baseline;gap:8px;font-family:var(--f-mono);color:var(--muted)}
+.pv-aviso input{width:90px;height:40px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);padding:0 10px;font:inherit;font-size:20px;text-align:right}
+.pv-aviso b{font-family:var(--f-disp);font-size:34px;color:var(--text)}
+.pv-outras{max-width:280px}
+.pv-ag{display:inline-block;font-size:12px;font-family:var(--f-mono);border:1px solid var(--line-2);border-radius:999px;padding:1px 8px;margin:2px 4px 2px 0;color:var(--muted);white-space:nowrap}
+tr.pv-aberta td{background:color-mix(in srgb,var(--s-pm) 6%,transparent)}
+.pv-painel{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px;padding:8px 4px}
+.pv-pcol{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pv-pcol h4{margin:0 0 4px;font-family:var(--f-disp);font-size:17px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--s-pm)}
+.pv-pcol .dica{margin:2px 0 0;font-size:12px;color:var(--faint)}
+.pv-agl,.pv-add{display:grid;grid-template-columns:minmax(0,1fr) 130px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;background:var(--panel-2)}
+.pv-add{grid-template-columns:minmax(0,1fr) 130px auto;background:transparent;border:1px dashed color-mix(in srgb,var(--s-pm) 50%,transparent);margin-top:4px}
+.frm .pv-agl input[type=text],.frm .pv-add input[type=text]{height:38px;font-size:14px}
+.pv-ag-hor,#pv-add-hor{font-family:var(--f-mono)!important;text-align:right}
+.pv-agl b{font-weight:600}.pv-agl span{font-size:13px}
+.pv-agf{font-family:var(--f-mono);font-size:12px!important;color:var(--muted)}
+.pv-agf.neg{color:var(--s-pm)}
+.pv-agl .ghost-sm{height:36px;font-size:13px;padding:0 10px;white-space:nowrap}
+.ghost-sm.conf{border-color:var(--s-pm);color:#0B0F12;background:var(--s-pm)}
+.pv-add .salvar{height:38px;font-size:14px;padding:0 16px;background:var(--s-pm)}
+.pv-hl{grid-template-columns:minmax(0,1fr) 90px 90px}
+.pv-hl small{grid-column:1/-1}
+@media (max-width:900px){.pv-painel{grid-template-columns:1fr}}
+@media (max-width:640px){.pv-agl{grid-template-columns:1fr 110px}.pv-agl .pv-agf{grid-column:1/-1}.pv-add{grid-template-columns:1fr 110px}.pv-add .salvar{grid-column:1/-1}.pv-outras{grid-column:1/-1;max-width:none}}
