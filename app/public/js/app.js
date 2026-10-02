@@ -838,7 +838,7 @@ function renderBiblio(){
 }
 function renderLista(){
   const q=busca.trim().toLowerCase();
-  const lista=Object.values(equip).filter(e=>(!filtroTipo||e.tipo===filtroTipo)&&(!q||[e.tag,e.modelo,e.area].join(' ').toLowerCase().includes(q)));
+  const lista=Object.values(equip).filter(e=>(!filtroTipo||e.tipo===filtroTipo)&&(!q||[e.tag,e.modelo,e.area,nomeOficina(e.oficina)||''].join(' ').toLowerCase().includes(q)));
   $('#cad-n').textContent=`${lista.length} de ${Object.keys(equip).length} equipamentos`;
   const grupos=[...frotas,{id:'_sem',nome:'Sem frota'}];
   let html='';
@@ -846,9 +846,9 @@ function renderLista(){
     const itens=lista.filter(e=>f.id==='_sem'?!frotaDe(e.grupo):e.grupo===f.id).sort((a,b)=>cmpTag(a.tag,b.tag));
     if(!itens.length)continue;
     html+=`<div class="fh">${esc(f.nome)}<span>${f.prefixo?esc(f.prefixo)+'-xx · ':''}${itens.length}</span></div>`;
-    html+=itens.map(e=>`<button type="button" class="linha${e.ativo===false?' off':''}" data-c="${e.status}" data-tag="${esc(e.tag)}" aria-current="${editando===e.tag}">${icone(e.tipo)}<span class="tg">${esc(e.tag)}${e.porte?`<small>${esc(e.porte)}</small>`:''}</span><span class="md">${esc(e.modelo||'—')}<small>${e.ano?'Ano '+esc(e.ano):''}</small></span><span class="ar">${esc(e.area||'—')}${e.oficina&&nomeOficina(e.oficina)?' · '+esc(nomeOficina(e.oficina)):''}</span><span class="hr">${fmtH(e.horimetro)}</span><span class="sx">${e.ativo===false?'Fora do painel':ST[e.status].curto}</span></button>`).join('');
+    html+=itens.map(e=>`<button type="button" class="linha${e.ativo===false?' off':''}" data-c="${e.status}" data-tag="${esc(e.tag)}" aria-current="${editando===e.tag}">${icone(e.tipo)}<span class="tg">${esc(e.tag)}${e.porte?`<small>${esc(e.porte)}</small>`:''}</span><span class="md">${esc(e.modelo||'—')}<small>${e.ano?'Ano '+esc(e.ano):''}</small></span><span class="ar">${esc(e.area||'—')}</span><span class="of">${esc((e.oficina&&nomeOficina(e.oficina))||'—')}</span><span class="hr">${fmtH(e.horimetro)}</span><span class="sx">${e.ativo===false?'Fora do painel':ST[e.status].curto}</span></button>`).join('');
   }
-  $('#cad-tab').innerHTML=html?`<div class="cab"><span></span><span>TAG</span><span>Modelo</span><span>Área</span><span class="hr">Horímetro</span><span style="text-align:right">Situação</span></div>${html}`:'<p class="vazio">Nenhum equipamento encontrado.</p>';
+  $('#cad-tab').innerHTML=html?`<div class="cab"><span></span><span>TAG</span><span>Modelo</span><span>Área</span><span>Oficina</span><span class="hr">Horímetro</span><span style="text-align:right">Situação</span></div>${html}`:'<p class="vazio">Nenhum equipamento encontrado.</p>';
 }
 
 function renderForm(){
