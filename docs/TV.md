@@ -73,6 +73,6 @@ ganha o selo `PM` e mostra o nome da preventiva e as horas que faltam em verde-�
 - A TV se reconecta sozinha se a rede ou o servidor cair, e mostra "Reconectando…" enquanto isso,
   mantendo o último estado na tela.
 - Depois de uma atualização do sistema, a TV recarrega sozinha.
-- O idioma (Português/English) é escolhido por aparelho em **Configurações**.
+- O idioma abre em inglês; cada aparelho pode trocar para português em **Configurações** (Settings).
 - Para deixar o QR code de acesso fixo no canto do painel, o administrador liga **QR code fixo no painel**
   em Configurações.

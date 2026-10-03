@@ -1,4 +1,4 @@
-let LANG='pt';try{LANG=localStorage.getItem('qp-lang')==='en'?'en':'pt'}catch(e){}
+let LANG='en';try{LANG=localStorage.getItem('qp-lang')==='pt'?'pt':'en'}catch(e){}
 const EN={
 'Quadro de Paradas':'Downtime Board','Operação × Manutenção · frota de mina':'Operations × Maintenance · mine fleet',
 'Seção':'Section','Painel':'Board','Cadastro':'Equipment','Configurações':'Settings',
@@ -107,6 +107,8 @@ const PAT=[
 function numEN(s){return s.replace(/\b(\d{1,3}(?:\.\d{3})+)(?= h\b)/g,m=>m.replace(/\./g,','));}
 /* textos da versão servidor */
 Object.assign(EN,{
+'Uma planilha com seis abas: Paradas, Etapas, Correções, Peças, Equipamentos e Usuários (sem o PIN). As datas já saem no formato do Excel.':'One workbook with six sheets: Stops, Stages, Corrections, Parts, Equipment and Users (no PINs). Dates come out in Excel format.',
+'Código da peça':'Part code','Descrição da peça':'Part description','Quantidade':'Quantity',
 'Sem conexão com o servidor. Tente de novo.':'No connection to the server. Try again.',
 'Entre com seu usuário de novo':'Sign in again',
 'Entre com seu usuário para registrar alterações.':'Sign in to make changes.',
