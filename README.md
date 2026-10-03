@@ -24,6 +24,8 @@ nas TVs (sala de controle e oficina) e nos celulares.
 
 ## Instalação (servidor Linux)
 
+Usa o Coolify? Veja [docs/COOLIFY.md](docs/COOLIFY.md).
+
 Pré-requisitos: Docker Engine com o plugin `docker compose` e o Git.
 
 ```bash

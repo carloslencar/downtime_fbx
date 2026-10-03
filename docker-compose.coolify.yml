@@ -1,0 +1,73 @@
+# Quadro de Paradas no Coolify (Build Pack: Docker Compose).
+# Diferenças em relação ao docker-compose.yml:
+#   - sem o proxy Caddy: o Coolify (Traefik) recebe o domínio, cuida do HTTPS e encaminha para a porta 3000;
+#   - a senha do banco é gerada pelo próprio Coolify (SERVICE_PASSWORD_POSTGRES);
+#   - os backups ficam num volume (backups), em vez da pasta ./backups.
+# Passo a passo: docs/COOLIFY.md
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: downtime
+      POSTGRES_USER: downtime
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      TZ: ${TZ:-America/Manaus}
+      PGTZ: ${TZ:-America/Manaus}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U downtime -d downtime"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: ./app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # O Coolify liga o domínio do serviço "app" à porta 3000.
+      - SERVICE_FQDN_APP_3000
+      - PGHOST=db
+      - PGPORT=5432
+      - PGDATABASE=downtime
+      - PGUSER=downtime
+      - PGPASSWORD=${SERVICE_PASSWORD_POSTGRES}
+      - TZ=${TZ:-America/Manaus}
+      - DADOS_INICIAIS=${DADOS_INICIAIS:-prototipo}
+      - ADMIN_PIN=${ADMIN_PIN:-}
+      - ADMIN_MATRICULA=${ADMIN_MATRICULA:-10001}
+      - POWERQUERY_USUARIO=${POWERQUERY_USUARIO:-relatorios}
+      - POWERQUERY_SENHA=${POWERQUERY_SENHA:-}
+      - RELATORIOS_CHAVE=${RELATORIOS_CHAVE:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/saude >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  backup:
+    build: ./backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PGHOST=db
+      - PGDATABASE=downtime
+      - PGUSER=downtime
+      - PGPASSWORD=${SERVICE_PASSWORD_POSTGRES}
+      - TZ=${TZ:-America/Manaus}
+      - BACKUP_HORA=${BACKUP_HORA:-02:30}
+      - BACKUP_DIAS=${BACKUP_DIAS:-30}
+    volumes:
+      - backups:/backups
+
+volumes:
+  dbdata:
+  backups:
