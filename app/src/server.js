@@ -77,10 +77,13 @@ docs.mudancas.on('mudanca', m => {
 setInterval(() => { for (const res of clientes) res.write('event: ping\ndata: {}\n\n'); }, 20000).unref();
 
 function stream(req, res) {
+  // Proxies que comprimem (ex.: Traefik do Coolify com gzip) seguram o canal até juntar dados.
+  // "Content-Encoding: identity" faz o proxy não comprimir, e o comentário de 2 KB força o envio imediato.
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform',
-    'Connection': 'keep-alive', 'X-Accel-Buffering': 'no'
+    'Connection': 'keep-alive', 'X-Accel-Buffering': 'no', 'Content-Encoding': 'identity'
   });
+  res.write(':' + ' '.repeat(2048) + '\n\n');
   res.write('retry: 3000\n');
   res.write(`event: ola\ndata: ${JSON.stringify({ t: Date.now(), versao: VERSAO })}\n\n`);
   clientes.add(res);

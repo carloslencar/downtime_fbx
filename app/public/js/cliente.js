@@ -159,7 +159,7 @@
     es = new EventSource('/api/stream');
     ultimoSinal = Date.now();
     es.addEventListener('ola', ev => {
-      ultimoSinal = Date.now();
+      ultimoSinal = Date.now(); ultimoOla = Date.now();
       try { verificarVersao(JSON.parse(ev.data).versao); } catch (e) {}
       online = true; conectado = true;
       sincronizarTudo();
@@ -187,11 +187,30 @@
     location.reload();
   }
   function avisarStatus() { for (const f of Object.values(fontes)) notificar(f, [], true); }
-  function garantirConexao() { if (!conectado && !es) conectar(); }
+  // Plano B: se o tempo real não responder (proxy que segura o canal), busca os dados pela rede a cada 5 s.
+  let poll = null, ultimoOla = 0;
+  function iniciarPlanoB() {
+    if (poll) return;
+    poll = setInterval(async () => {
+      if (Date.now() - ultimoOla < 45000 && conectado) { clearInterval(poll); poll = null; return; }
+      try { await http('GET', '/api/saude'); await sincronizarTudo(); if (!online) { online = true; avisarStatus(); } }
+      catch (e) { if (online) { online = false; avisarStatus(); } }
+    }, 5000);
+  }
+  function garantirConexao() {
+    if (!conectado && !es) {
+      conectar();
+      // Primeira carga já pela rede, sem esperar o tempo real.
+      setTimeout(() => {
+        http('GET', '/api/saude').then(() => sincronizarTudo()).then(() => { if (!conectado) { online = true; avisarStatus(); } }).catch(() => {});
+      }, 0);
+      setTimeout(() => { if (!conectado) iniciarPlanoB(); }, 6000);
+    }
+  }
   // Vigia: sem sinal por 50 s (rede caiu sem aviso), reconecta.
   setInterval(() => {
     if (!es) return;
-    if (Date.now() - ultimoSinal > 50000) { online = false; avisarStatus(); conectar(); }
+    if (Date.now() - ultimoSinal > 50000) { conectado = false; conectar(); iniciarPlanoB(); }
   }, 10000);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && es && Date.now() - ultimoSinal > 25000) conectar();
