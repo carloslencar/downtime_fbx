@@ -25,6 +25,12 @@ os dados novos.
 | Eventos | lançamento (histórico completo) | Data, TAG, Situação, Ação, Por, Detalhe, Horímetro |
 | Usuários | usuário | Matrícula, Nome, Perfil, Oficina, Ativo (nunca o PIN) |
 
+**Idioma:** com a tela em inglês, a aba Dados entrega o código já em inglês (o link leva `&idioma=en`): colunas e
+valores do sistema saem em inglês ("Start", "Status: Closed"…). Sem o parâmetro, tudo sai em português. Escolha um idioma
+antes de montar os relatórios: trocar depois muda o nome das colunas e as consultas do Excel precisam ser refeitas.
+Os arquivos baixados na aba Dados (Excel e CSV) seguem o idioma da tela. Texto digitado (observações, nomes de frota,
+áreas e pessoas) sai como foi cadastrado.
+
 Datas no fuso do `.env` (`TZ`). Para filtrar período direto no link, acrescente `&de=2026-09-01&ate=2026-09-30`.
 
 ### Chave de acesso

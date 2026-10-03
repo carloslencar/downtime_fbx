@@ -64,6 +64,43 @@ const TABELAS = {
   }
 };
 
+// Inglês (?idioma=en): nomes das colunas e valores fixos do sistema. Texto digitado (observações, nomes) fica como está.
+const COLS_EN = {
+  'ID': 'ID', 'Nº': 'No.', 'TAG': 'Tag', 'Oficina': 'Workshop', 'Frota': 'Fleet', 'Tipo': 'Type', 'Área': 'Area', 'Motivo': 'Reason',
+  'Observação': 'Note', 'Início': 'Start', 'Fim': 'End', 'Duração (h)': 'Duration (h)', 'Situação': 'Status', 'Técnico': 'Technician',
+  'Horímetro início': 'Hour meter start', 'Horímetro fim': 'Hour meter end', 'Correções': 'Corrections', 'Aberta por': 'Opened by',
+  'Responsáveis': 'Technicians', 'Transferências': 'Transfers', 'Tipo de parada': 'Stop type', 'Preventiva': 'Preventive',
+  'Parada': 'Stop', 'Ordem': 'Order', 'Etapa': 'Stage', 'Registrado por': 'Recorded by', 'Parada cancelada': 'Stop cancelled',
+  'Data': 'Date', 'Por': 'By', 'Campo': 'Field', 'De': 'From', 'Para': 'To', 'Justificativa': 'Justification',
+  'Porte': 'Size', 'Modelo': 'Model', 'Ano': 'Year', 'Horímetro': 'Hour meter', 'Leitura do horímetro': 'Hour meter read at',
+  'Média (h/dia)': 'Average (h/day)', 'Situação atual': 'Current status', 'Desde': 'Since', 'No painel': 'On board',
+  'Ação': 'Action', 'Detalhe': 'Detail', 'Parada nº': 'Stop no.', 'Peça': 'Part', 'Código': 'Code', 'Quantidade': 'Quantity',
+  'Solicitada em': 'Requested at', 'Solicitada por': 'Requested by', 'Ordem de compra': 'Purchase order', 'OC informada em': 'PO entered at',
+  'Chegou': 'Arrived', 'Chegou em': 'Arrived at', 'Recebida por': 'Received by', 'Espera (h)': 'Wait (h)',
+  'Coletada em': 'Collected at', 'Lançada em': 'Entered at', 'Lançada por': 'Entered by', 'Origem': 'Source',
+  'Horímetro previsto': 'Due hour meter', 'Horímetro atual': 'Current hour meter', 'Faltam (h)': 'Remaining (h)',
+  'Matrícula': 'Employee ID', 'Nome': 'Name', 'Nome curto': 'Short name', 'Perfil': 'Role', 'Ativo': 'Active'
+};
+const VAL_EN = {
+  'Encerrada': 'Closed', 'Em andamento': 'In progress', 'Cancelada': 'Cancelled', 'Corretiva': 'Corrective', 'Preventiva': 'Preventive',
+  'Operando': 'Operating', 'Aguardando manutenção': 'Waiting for maintenance', 'Em manutenção': 'In maintenance', 'Peças solicitadas': 'Parts requested',
+  'Aguardando peças': 'Waiting for parts', 'Peças recebidas': 'Parts received', 'Liberado · aguardando operação': 'Released · waiting for operations', 'Correção': 'Correction',
+  'Caminhão articulado': 'Articulated truck', 'Escavadeira': 'Excavator', 'Pá carregadeira': 'Wheel loader', 'Trator de esteira': 'Dozer',
+  'Motoniveladora': 'Motor grader', 'Bomba': 'Pump', 'Perfuratriz': 'Drill rig', 'Caminhão comboio': 'Fuel truck',
+  'Operação': 'Operations', 'Manutenção': 'Maintenance', 'Planejamento': 'Planning', 'Administrador': 'Administrator',
+  'Mecânica': 'Mechanical', 'Hidráulica': 'Hydraulic', 'Elétrica': 'Electrical', 'Pneu / rodante': 'Tires / undercarriage', 'Avaria / acidente': 'Damage / accident', 'Outro': 'Other',
+  'Chegou': 'Arrived', 'Com ordem de compra': 'With purchase order', 'Aguardando ordem de compra': 'Waiting for purchase order',
+  'Lançamento diário': 'Daily entry', 'Parada': 'Stop', 'Cadastro': 'Equipment register', 'Leitura inicial': 'Initial reading',
+  'Parada liberada': 'Stop released', 'Marcada pelo planejamento': 'Marked by planning',
+  'Parada aberta': 'Stop opened', 'Atendimento iniciado': 'Work started', 'Ordens de compra lançadas': 'Purchase orders entered',
+  'Liberado pela manutenção': 'Released by maintenance', 'Recebido pela operação': 'Received by operations', 'Atendimento retomado': 'Work resumed',
+  'Lançamento desfeito': 'Entry undone', 'Lançamento corrigido': 'Entry corrected', 'Parada corrigida': 'Stop corrected', 'Parada cancelada': 'Stop cancelled',
+  'Atendimento transferido': 'Work transferred', 'Peças adicionadas': 'Parts added', 'Solicitação de peças cancelada': 'Parts request cancelled'
+};
+// Colunas cujos valores são do sistema (traduzidos); as demais são dados digitados.
+const TRADUZ = new Set(['situacao', 'tipo', 'motivo', 'tipo_parada', 'etapa', 'situacao_atual', 'acao', 'perfil', 'origem']);
+function rotulo(pt, idioma) { return idioma === 'en' ? (COLS_EN[pt] || pt) : pt; }
+
 // Tipos para o Power Query (colunas não listadas ficam como texto).
 const TIPOS_M = {
   'Início': 'datetime', 'Fim': 'datetime', 'Data': 'datetime', 'Desde': 'datetime', 'Leitura do horímetro': 'datetime',
@@ -95,7 +132,8 @@ function celula(v) {
 
 function diaValido(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null; }
 
-async function csv(nome, { de, ate } = {}) {
+async function csv(nome, { de, ate, idioma } = {}) {
+  const en = idioma === 'en';
   const t = TABELAS[nome];
   if (!t) return null;
   const chaves = Object.keys(t.cols);
@@ -110,23 +148,28 @@ async function csv(nome, { de, ate } = {}) {
   // Datas em texto ISO local (sem fuso), que o Power Query reconhece como data/hora.
   const sel = chaves.map((k, i) => `to_json(v.${k}) as c${i}`).join(', ');
   const r = await pool.query(`select ${sel} from ${t.view} v${where} order by v.${t.ordem}`, params);
-  const linhas = [chaves.map(k => celula(t.cols[k])).join(',')];
-  for (const row of r.rows) linhas.push(chaves.map((k, i) => celula(row['c' + i])).join(','));
+  const linhas = [chaves.map(k => celula(rotulo(t.cols[k], idioma))).join(',')];
+  for (const row of r.rows) linhas.push(chaves.map((k, i) => {
+    let v = row['c' + i];
+    if (en && typeof v === 'string' && TRADUZ.has(k) && VAL_EN[v]) v = VAL_EN[v];
+    return celula(v);
+  }).join(','));
   return '\uFEFF' + linhas.join('\r\n') + '\r\n';
 }
 
-function codigoM(nome, base, ch) {
+function codigoM(nome, base, ch, idioma) {
   const t = TABELAS[nome];
   if (!t) return '';
-  const tipos = Object.values(t.cols).filter(c => TIPOS_M[c]).map(c => `{"${c}", ${TIPOS_M[c].includes('.') ? TIPOS_M[c] : 'type ' + TIPOS_M[c]}}`);
+  const en = idioma === 'en';
+  const tipos = Object.values(t.cols).filter(c => TIPOS_M[c]).map(c => `{"${rotulo(c, idioma)}", ${TIPOS_M[c].includes('.') ? TIPOS_M[c] : 'type ' + TIPOS_M[c]}}`);
   return `let
-    Fonte = Csv.Document(
-        Web.Contents("${base}", [RelativePath = "api/relatorios/${nome}.csv", Query = [chave = "${ch}"]]),
+    ${en ? 'Source' : 'Fonte'} = Csv.Document(
+        Web.Contents("${base}", [RelativePath = "api/relatorios/${nome}.csv", Query = [chave = "${ch}"${en ? ', idioma = "en"' : ''}]]),
         [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
-    Cabecalhos = Table.PromoteHeaders(Fonte, [PromoteAllScalars = true]),
-    Tipos = Table.TransformColumnTypes(Cabecalhos, {${tipos.join(', ')}}, "en-US")
+    ${en ? 'Headers' : 'Cabecalhos'} = Table.PromoteHeaders(${en ? 'Source' : 'Fonte'}, [PromoteAllScalars = true]),
+    ${en ? 'Types' : 'Tipos'} = Table.TransformColumnTypes(${en ? 'Headers' : 'Cabecalhos'}, {${tipos.join(', ')}}, "en-US")
 in
-    Tipos`;
+    ${en ? 'Types' : 'Tipos'}`;
 }
 
 module.exports = { TABELAS, chave, iguais, csv, codigoM };

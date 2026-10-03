@@ -323,7 +323,7 @@
       const j = await http('GET', '/api/docs/paradas?' + p);
       return j.docs.map(d => d.data);
     },
-    relatorios: () => http('GET', '/api/relatorios'),
+    relatorios: idioma => http('GET', '/api/relatorios' + (idioma === 'en' ? '?idioma=en' : '')),
     novaChaveRelatorios: () => http('POST', '/api/relatorios/nova-chave', {})
   };
 })();

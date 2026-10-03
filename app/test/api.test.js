@@ -94,6 +94,13 @@ test('API com banco', { skip: !URL_DB && 'defina DATABASE_URL para rodar' }, asy
     for (const n of ['etapas', 'correcoes', 'equipamentos', 'eventos', 'usuarios']) {
       assert.equal((await req('GET', `/api/relatorios/${n}.csv?chave=chave-teste`)).status, 200, n);
     }
+    const en = await req('GET', '/api/relatorios/paradas.csv?chave=chave-teste&idioma=en');
+    assert.match(en.txt, /^\uFEFF?ID,No\.,Tag,Workshop,Fleet,Type/);
+    assert.match(en.txt, /In progress|Closed/);
+    assert.doesNotMatch(en.txt, /,Em andamento,|,Encerrada,/);
+    const infoEn = (await req('GET', '/api/relatorios?idioma=en', null, cAdm)).j;
+    assert.match(infoEn.tabelas[0].url, /idioma=en/);
+    assert.match(infoEn.tabelas[0].m, /idioma = "en"/);
     assert.equal((await req('GET', '/api/relatorios', null, cOp)).status, 403);
     assert.equal((await req('GET', '/api/relatorios', null, cAdm)).j.tabelas.length, 10);
   });

@@ -178,7 +178,7 @@ async function api(req, res, url) {
     if (m && metodo === 'GET') {
       const ch = await relatorios.chave();
       if (!relatorios.iguais(url.searchParams.get('chave'), ch)) return erro(res, 403, 'Chave de relatório inválida.');
-      const corpo = await relatorios.csv(m[1], { de: url.searchParams.get('de'), ate: url.searchParams.get('ate') });
+      const corpo = await relatorios.csv(m[1], { de: url.searchParams.get('de'), ate: url.searchParams.get('ate'), idioma: url.searchParams.get('idioma') });
       if (corpo == null) return erro(res, 404, 'Relatório desconhecido.');
       res.writeHead(200, {
         'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'no-store',
@@ -189,9 +189,9 @@ async function api(req, res, url) {
     const u = await auth.usuarioDaSessao(token);
     if (!u || u.perfil !== 'admin') return erro(res, 403, 'Só o administrador acessa os relatórios.');
     if (!partes[2] && metodo === 'GET') {
-      const ch = await relatorios.chave(), base = baseUrl(req);
+      const ch = await relatorios.chave(), base = baseUrl(req), idioma = url.searchParams.get('idioma') === 'en' ? 'en' : 'pt';
       const tabelas = Object.keys(relatorios.TABELAS).map(nome => ({
-        nome, url: `${base}api/relatorios/${nome}.csv?chave=${encodeURIComponent(ch)}`, m: relatorios.codigoM(nome, base, ch)
+        nome, url: `${base}api/relatorios/${nome}.csv?chave=${encodeURIComponent(ch)}${idioma === 'en' ? '&idioma=en' : ''}`, m: relatorios.codigoM(nome, base, ch, idioma)
       }));
       return json(res, 200, { chave: ch, fixa: !!config.relatoriosChave, base, tabelas });
     }

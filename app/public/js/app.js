@@ -1189,8 +1189,52 @@ function planilhaXml(t){
     if(tp==='d')x+=`<c r="${ref}" s="2"><v>${serialExcel(v)}</v></c>`;else if(tp==='n'&&isFinite(Number(v)))x+=`<c r="${ref}"><v>${Number(v)}</v></c>`;else x+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;});x+='</row>';});
   return x+'</sheetData></worksheet>';
 }
-function gerarXlsx(T){
-  const nomes=TABELAS;
+/* Exportação em inglês: com a tela em inglês, colunas, abas e valores do sistema saem em inglês
+   (o texto digitado, como observações e nomes, fica como está). Mesmos nomes dos links do Power Query. */
+const EXP_COLS_EN={
+  'ID': 'ID', 'Nº': 'No.', 'TAG': 'Tag', 'Oficina': 'Workshop', 'Frota': 'Fleet', 'Tipo': 'Type', 'Área': 'Area', 'Motivo': 'Reason',
+  'Observação': 'Note', 'Início': 'Start', 'Fim': 'End', 'Duração (h)': 'Duration (h)', 'Situação': 'Status', 'Técnico': 'Technician',
+  'Horímetro início': 'Hour meter start', 'Horímetro fim': 'Hour meter end', 'Correções': 'Corrections', 'Aberta por': 'Opened by',
+  'Responsáveis': 'Technicians', 'Transferências': 'Transfers', 'Tipo de parada': 'Stop type', 'Preventiva': 'Preventive',
+  'Parada': 'Stop', 'Ordem': 'Order', 'Etapa': 'Stage', 'Registrado por': 'Recorded by', 'Parada cancelada': 'Stop cancelled',
+  'Data': 'Date', 'Por': 'By', 'Campo': 'Field', 'De': 'From', 'Para': 'To', 'Justificativa': 'Justification',
+  'Porte': 'Size', 'Modelo': 'Model', 'Ano': 'Year', 'Horímetro': 'Hour meter', 'Leitura do horímetro': 'Hour meter read at',
+  'Média (h/dia)': 'Average (h/day)', 'Situação atual': 'Current status', 'Desde': 'Since', 'No painel': 'On board',
+  'Ação': 'Action', 'Detalhe': 'Detail', 'Parada nº': 'Stop no.', 'Peça': 'Part', 'Código': 'Code', 'Quantidade': 'Quantity',
+  'Solicitada em': 'Requested at', 'Solicitada por': 'Requested by', 'Ordem de compra': 'Purchase order', 'OC informada em': 'PO entered at',
+  'Chegou': 'Arrived', 'Chegou em': 'Arrived at', 'Recebida por': 'Received by', 'Espera (h)': 'Wait (h)',
+  'Coletada em': 'Collected at', 'Lançada em': 'Entered at', 'Lançada por': 'Entered by', 'Origem': 'Source',
+  'Horímetro previsto': 'Due hour meter', 'Horímetro atual': 'Current hour meter', 'Faltam (h)': 'Remaining (h)',
+  'Matrícula': 'Employee ID', 'Nome': 'Name', 'Nome curto': 'Short name', 'Perfil': 'Role', 'Ativo': 'Active'
+};
+const EXP_VAL_EN=Object.assign({
+  'Encerrada': 'Closed', 'Em andamento': 'In progress', 'Cancelada': 'Cancelled', 'Corretiva': 'Corrective', 'Preventiva': 'Preventive',
+  'Operando': 'Operating', 'Aguardando manutenção': 'Waiting for maintenance', 'Em manutenção': 'In maintenance', 'Peças solicitadas': 'Parts requested',
+  'Aguardando peças': 'Waiting for parts', 'Peças recebidas': 'Parts received', 'Liberado · aguardando operação': 'Released · waiting for operations', 'Correção': 'Correction',
+  'Caminhão articulado': 'Articulated truck', 'Escavadeira': 'Excavator', 'Pá carregadeira': 'Wheel loader', 'Trator de esteira': 'Dozer',
+  'Motoniveladora': 'Motor grader', 'Bomba': 'Pump', 'Perfuratriz': 'Drill rig', 'Caminhão comboio': 'Fuel truck',
+  'Operação': 'Operations', 'Manutenção': 'Maintenance', 'Planejamento': 'Planning', 'Administrador': 'Administrator',
+  'Mecânica': 'Mechanical', 'Hidráulica': 'Hydraulic', 'Elétrica': 'Electrical', 'Pneu / rodante': 'Tires / undercarriage', 'Avaria / acidente': 'Damage / accident', 'Outro': 'Other',
+  'Chegou': 'Arrived', 'Com ordem de compra': 'With purchase order', 'Aguardando ordem de compra': 'Waiting for purchase order',
+  'Lançamento diário': 'Daily entry', 'Parada': 'Stop', 'Cadastro': 'Equipment register', 'Leitura inicial': 'Initial reading',
+  'Parada liberada': 'Stop released', 'Marcada pelo planejamento': 'Marked by planning',
+  'Parada aberta': 'Stop opened', 'Atendimento iniciado': 'Work started', 'Ordens de compra lançadas': 'Purchase orders entered',
+  'Liberado pela manutenção': 'Released by maintenance', 'Recebido pela operação': 'Received by operations', 'Atendimento retomado': 'Work resumed',
+  'Lançamento desfeito': 'Entry undone', 'Lançamento corrigido': 'Entry corrected', 'Parada corrigida': 'Stop corrected', 'Parada cancelada': 'Stop cancelled',
+  'Atendimento transferido': 'Work transferred', 'Peças adicionadas': 'Parts added', 'Solicitação de peças cancelada': 'Parts request cancelled'
+},{'Sim':'Yes','Não':'No','Peças recebidas · aguardando mecânico':'Parts received · waiting for mechanic','Liberado':'Released','Aguardando':'Waiting'});
+const EXP_ABA_EN={Paradas:'Stops',Etapas:'Stages',Correcoes:'Corrections',Pecas:'Parts',Equipamentos:'Equipment',Usuarios:'Users'};
+const EXP_TRADUZ=new Set(['Tipo','Motivo','Situação','Tipo de parada','Etapa','Situação atual','Perfil','Parada cancelada','No painel','Ativo']);
+function valEN(v){if(typeof v!=='string')return v;if(EXP_VAL_EN[v])return EXP_VAL_EN[v];const m=/^(Preventiva) · (.+)$/.exec(v);return m?'Preventive · '+m[2]:v;}
+function tabelaIdioma(t){
+  if(LANG!=='en')return t;
+  const tr=t.cols.map(c=>EXP_TRADUZ.has(c));
+  return {cols:t.cols.map(c=>EXP_COLS_EN[c]||c),tipos:t.tipos,rows:t.rows.map(r=>r.map((v,i)=>tr[i]?valEN(v):v))};
+}
+function nomeAba(n){return LANG==='en'?EXP_ABA_EN[n]||n:n;}
+function gerarXlsx(T0){
+  const T={};for(const n of TABELAS)T[nomeAba(n)]=tabelaIdioma(T0[n]);
+  const nomes=TABELAS.map(nomeAba);
   const files=[
     {nome:'[Content_Types].xml',dados:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+nomes.map((n,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>'},
     {nome:'_rels/.rels',dados:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
@@ -1201,13 +1245,14 @@ function gerarXlsx(T){
   ];
   return zipStore(files);
 }
-function gerarCsv(t){
+function gerarCsv(t0){
+  const t=tabelaIdioma(t0);
   const dec=LANG==='en'?'.':',',sep=LANG==='en'?',':';';
   const cel=(v,tp)=>{if(v==null||v==='')return '';if(tp==='d'){const d=new Date(v);return isoDia(v)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());}if(tp==='n')return String(v).replace('.',dec);const s=String(v);return /[";,\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   return '\uFEFF'+[t.cols.map(c=>cel(c,'s')).join(sep),...t.rows.map(r=>r.map((v,i)=>cel(v,t.tipos[i])).join(sep))].join('\r\n');
 }
 async function renderPQ(recarregar){
-  if(recarregar||!pqInfo){try{pqInfo=await window.dt.relatorios();}catch(e){pqInfo=null;}}
+  if(recarregar||!pqInfo||pqInfo.idioma!==LANG){try{pqInfo=await window.dt.relatorios(LANG);pqInfo.idioma=LANG;}catch(e){pqInfo=null;}}
   const t=pqInfo&&pqInfo.tabelas.find(x=>x.nome===pqTab);
   $('#d-pq-tab').value=pqTab;
   $('#d-m-tab').textContent=$('#d-pq-tab').selectedOptions[0].textContent;
@@ -1227,7 +1272,7 @@ async function renderDados(recarregar){
   $('#d-resumo').innerHTML=[['Paradas no período',T.Paradas.rows.length],['Em andamento',ab],['Tempo médio de parada',mttr==null?'—':String(Math.round(mttr*10)/10).replace('.',LANG==='en'?'.':',')+' h'],['Etapas',T.Etapas.rows.length],['Correções',T.Correcoes.rows.length],['Equipamentos',T.Equipamentos.rows.length]]
     .map(([l,v])=>`<div class="k"><div class="k-l">${esc(l)}</div><div class="k-v">${esc(v)}</div></div>`).join('');
   $('#d-tabs').innerHTML=TABELAS.map(n=>`<button type="button" data-dt="${n}" aria-pressed="${dTab===n}">${esc(NOME_TAB[n])} <span>${T[n].rows.length}</span></button>`).join('');
-  const t=T[dTab],fmt=(v,tp)=>v==null||v===''?'<span class="nulo">—</span>':tp==='d'?esc(dataHora(v)):tp==='n'?esc(String(v).replace('.',LANG==='en'?'.':',')):esc(v);
+  const t=tabelaIdioma(T[dTab]),fmt=(v,tp)=>v==null||v===''?'<span class="nulo">—</span>':tp==='d'?esc(dataHora(v)):tp==='n'?esc(String(v).replace('.',LANG==='en'?'.':',')):esc(v);
   $('#d-prev').innerHTML=`<table><thead><tr>${t.cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.slice(0,12).map(r=>`<tr>${r.map((v,i)=>`<td class="${t.tipos[i]}">${fmt(v,t.tipos[i])}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${t.cols.length}" class="vazio">Nenhum registro no período.</td></tr>`}</tbody></table>`;
   $('#d-prev-n').textContent=t.rows.length>12?`Mostrando 12 de ${t.rows.length} linhas`:`${t.rows.length} linhas`;
   if(recarregar||!pqInfo)renderPQ(recarregar);
@@ -1243,8 +1288,8 @@ async function dSalvar(nome,data){
 $('#v-dados').addEventListener('click',async ev=>{
   const b=ev.target.closest('button');if(!b)return;
   if(b.dataset.dt){dTab=b.dataset.dt;renderDados();return;}
-  if(b.id==='d-xlsx'){if(!dCache)await renderDados(true);return dSalvar('quadro-de-paradas-dados.xlsx',gerarXlsx(montarTabelas(dCache)));}
-  if(b.id==='d-csv'){if(!dCache)await renderDados(true);return dSalvar('quadro-de-paradas-'+dTab.toLowerCase()+'.csv',gerarCsv(montarTabelas(dCache)[dTab]));}
+  if(b.id==='d-xlsx'){if(!dCache)await renderDados(true);return dSalvar(LANG==='en'?'downtime-board-data.xlsx':'quadro-de-paradas-dados.xlsx',gerarXlsx(montarTabelas(dCache)));}
+  if(b.id==='d-csv'){if(!dCache)await renderDados(true);return dSalvar((LANG==='en'?'downtime-board-'+nomeAba(dTab):'quadro-de-paradas-'+dTab).toLowerCase()+'.csv',gerarCsv(montarTabelas(dCache)[dTab]));}
   if(b.id==='d-atual'){await renderDados(true);dStatus('Dados atualizados.',true);return;}
   if(b.id==='d-chave'){
     if(!pqConfChave){pqConfChave=true;renderPQ();return;}
